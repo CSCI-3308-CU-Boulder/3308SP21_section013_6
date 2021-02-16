@@ -12,16 +12,17 @@ fabio_path = 'fabio.jpg'
 lenna_path = 'lenna.png'
 
 # Load Fabio in grayscale
-fabio_gray = cv2.imread(fabio_path, 0)
+fabio_color = cv2.imread(fabio_path)
 
 # Load Lenna in grayscale
-lenna_gray = cv2.imread(lenna_path, 0)
+lenna_color = cv2.imread(lenna_path)
 
-cv2.imshow('Fabio',fabio_gray)
-cv2.imshow('Lenna',lenna_gray)
+cv2.imshow('Fabio',fabio_color)
+cv2.imshow('Lenna',lenna_color)
 
-print("fabio_gray:\n{}\n", fabio_gray)
-print("lenna_gray:\n{}\n", lenna_gray)
+# Print pixel matrices for both images
+# print("fabio_gray:\n{}\n", fabio_color)
+# print("lenna_gray:\n{}\n", lenna_color)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
