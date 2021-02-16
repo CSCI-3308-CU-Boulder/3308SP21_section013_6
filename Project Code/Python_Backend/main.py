@@ -8,8 +8,6 @@ import numpy as np
 import cv2
 
 
-print("Test!!!")
-
 fabio_path = 'fabio.jpg'
 lenna_path = 'lenna.png'
 
@@ -22,8 +20,8 @@ lenna_gray = cv2.imread(lenna_path, 0)
 cv2.imshow('Fabio',fabio_gray)
 cv2.imshow('Lenna',lenna_gray)
 
-print("fabio_gray:\n.format{}", fabio_gray)
-print("fabio_gray:\n.format{}", fabio_gray)
+print("fabio_gray:\n{}\n", fabio_gray)
+print("lenna_gray:\n{}\n", lenna_gray)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
