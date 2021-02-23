@@ -12,5 +12,22 @@ p{
 	margin-left: 20%;
 	margin-right: 10%
 }
+.my-container{
+	align-content: auto;
+}
+.my-row{
+	align-items: auto;
+	
+}
+.my-button{
+	width: 150px;
+	height: 50px;
+}
+
+.card1{
+	height:auto;
+	align-self: stretch;
+}
+
 </style>
 
