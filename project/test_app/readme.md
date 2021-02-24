@@ -16,7 +16,7 @@ To build Flask app in Docker container, go to directory /test_app and:
 -----------------------------------------------------------------------
 
 5) To update app with a container restart, run:
-	sudo docker stop docker.test && sudo docker start docker.test
+	sudo docker stop photophonic && sudo docker start photophonic
 
 6) To close the app, run:
-	docker stop docker.test
+	docker stop photophonic
