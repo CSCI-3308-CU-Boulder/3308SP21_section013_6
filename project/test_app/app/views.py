@@ -3,8 +3,9 @@ from app import app
 
 @app.route('/')
 def home():
-   return "<b>There has been a change</b>"
+	return render_template('home.html')
+	return "<b>There has been a change</b>"
 
 @app.route('/template')
 def template():
-    return render_template('home.html')
+	return render_template('home.html')
