@@ -1,9 +1,11 @@
 from flask import render_template
 from app import app
 
+IMAGES_PATH = os.path.join('static', 'images')
+
 @app.route("/home")
 def home():
-    return render_template("home.html")
+    return render_template("home.html")aw
 
 
 @app.route("/login")
