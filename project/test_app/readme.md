@@ -25,3 +25,7 @@ To build Flask app in Docker container, go to directory /test_app and:
 
 6) To close the app, run:
 	docker stop photophonic
+
+
+To test PostgreSQL run:
+docker exec -it CONTAINER_ID psql -U postgres postgres
