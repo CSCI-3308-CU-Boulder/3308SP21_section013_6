@@ -5,8 +5,12 @@ To build Flask app in Docker container, go to directory /test_app and:
    If it's not free, edit start.sh to contain a free port with:
 	sudo nano start.sh
 
-2) Run Docker image and build container from the resulting image with:
-	sudo bash start.sh
+2) Run Docker image
+	a) To start the image up after it's been built:
+		docker start photophonic
+	
+	a) If the docker container isn't built at all, run:
+		sudo bash start.sh
 
 3) Check that port is occupied by Docker container with:
 	sudo docker ps
