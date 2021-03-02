@@ -1,11 +1,14 @@
 from flask import render_template
 from app import app
 
-IMAGES_PATH = os.path.join('static', 'images')
 
-@app.route("/home")
+@app.route("/")
 def home():
-    return render_template("home.html")aw
+    return render_template("home.html")
+
+def show_index():
+    full_filename = os.path.join(app.config['UPLOAD_FOLDER'], 'images/fabio.jpg')
+    return render_template("index.html", user_image = full_filename)
 
 
 @app.route("/login")
