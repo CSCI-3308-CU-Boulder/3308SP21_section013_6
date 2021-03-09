@@ -4,35 +4,29 @@
 # Created on 3/9/21
 
 
-import math        #import needed modules
 import pyaudio     #sudo apt-get install python-pyaudio
+import numpy as np
 
-PyAudio = pyaudio.PyAudio     #initialize pyaudio
-BITRATE = 5000     #number of frames per second/frameset.
-FREQUENCY = 10000     #Hz, waves per second, 261.63=C4-note.
-LENGTH = 5    #seconds to play sound
+p = pyaudio.PyAudio()
 
-if FREQUENCY > BITRATE:
-   BITRATE = FREQUENCY+100
-NUMBEROFFRAMES = int(BITRATE * LENGTH)
+volume = 0.06     # range [0.0, 1.0]
+fs = 44100       # sampling rate in Hz, int
+duration = 1.0   # duration of audio in seconds, may be float
+f = 440.0        # sine frequency, Hz, may be float
 
-RESTFRAMES = NUMBEROFFRAMES % BITRATE
-WAVEDATA = ''
+# generate samples, note conversion to float32 array
+samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
 
-#generating waves
-for x in range(NUMBEROFFRAMES):
-     WAVEDATA = WAVEDATA+chr(int(math.sin(x/((BITRATE/FREQUENCY)/math.pi))*127+128))
+# for paFloat32 sample values must be in range [-1.0, 1.0]
+stream = p.open(format=pyaudio.paFloat32,
+                channels=1,
+                rate=fs,
+                output=True)
 
-for x in range(RESTFRAMES):
-    WAVEDATA = WAVEDATA+chr(128)
+# play. May repeat with different volume values (if done interactively)
+stream.write(volume*samples)
 
-print(WAVEDATA)
-
-p = PyAudio()
-
-stream = p.open(format = p.get_format_from_width(1),channels = 2, rate = BITRATE,output = True)
-
-stream.write(WAVEDATA)
 stream.stop_stream()
 stream.close()
+
 p.terminate()
