@@ -18,7 +18,11 @@ show = 0
 test_count = 1
 
 # [ [name, path, pixelData], ... ]
-image_pool = [ ['fabio', 'fabio.jpg'], ['lenna', 'lenna.png'] ]
+image_pool =   [
+                ['fabio', 'fabio.jpg'],
+                ['lenna', 'lenna.png']
+                                       ]
+
 img = image_pool[test_count - 1]
 
 
@@ -129,12 +133,25 @@ if show:
 
 mixer = Mixer(44100, volume)
 
-# rs = colorSynths[0]
-# initColorSynth( 0, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
+# [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
 
-for i in range(getChannels(img)):
-    rs = colorSynths[i-1]
-    initColorSynth( i-1, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
+if isgray(img[1]): # only get value synth
+    rs = colorSynths[3]
+    initColorSynth(0, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
+
+    # initColorSynth(0, rs[0], rs[1], rs[2] * (255 - mean), rs[3], rs[4], rs[5], rs[6], rs[7])
+
+    # TO DO:
+    #
+    #
+    # PASS INITCOLORSYNTH A LIST OF STATISTICS ON IMAGE FOR AUDIO GEN
+    #
+    # for use as seen above in line 142
+
+else: # get all color synths
+    for i in range(getChannels(img)):
+        rs = colorSynths[i-1]
+        initColorSynth( i-1, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
 
 mixer.write_wav('audio.wav')
 samples = mixer.mix()
@@ -149,16 +166,12 @@ wf = wave.open('audio.wav', 'rb')
 p = pyaudio.PyAudio()
 
 # Open a .Stream object to write the WAV file to
-# 'output = True' indicates that the sound will be played rather than recorded
 stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
                 channels = wf.getnchannels(),
                 rate = wf.getframerate(),
-                output = True)
+                output = True) # indicates playback as opposed to recording
 
-# Read data in chunks
 data = wf.readframes(chunk)
-
-# Play the sound by writing the audio data to the stream
 while data != '':
     stream.write(data)
     data = wf.readframes(chunk)
