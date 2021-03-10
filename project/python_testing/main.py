@@ -6,8 +6,12 @@
 
 import numpy as np
 import cv2
-from tones import SINE_WAVE, SAWTOOTH_WAVE
+from tones import SINE_WAVE, SAWTOOTH_WAVE, TRIANGLE_WAVE, SQUARE_WAVE
 from tones.mixer import Mixer
+import pyaudio
+import wave
+
+#-----------< IMAGE GLOBALS >-----------#
 
 
 show = 0
@@ -18,14 +22,24 @@ image_pool = [ ['fabio', 'fabio.jpg'], ['lenna', 'lenna.png'] ]
 img = image_pool[test_count - 1]
 
 
-volume = 0.5
+#-----------< AUDIO GLOBALS >-----------#
+
+
+volume = 0.1
 duration = 5
 
 # [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
-colorSynths = [ [ 'red', SAWTOOTH_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'f'] ]
+colorSynths = [
+    [ 'red', SAWTOOTH_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'f'],
+    [ 'blue', SINE_WAVE, 1.0, 1.0, 0.0, 0.0, 5, 'a'],
+    [ 'green', TRIANGLE_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'e'],
+    [ 'value', SQUARE_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'd'],
+    [ 'alpha', SAWTOOTH_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'bb'],
+    ]
 
 
-#----------------< IMAGE PROCESSING >----------------#
+#----------------< IMAGE ANALYSIS DEFINITIONS >----------------#
+
 
 def getChannels(img):
     return len(img[0])
@@ -86,12 +100,15 @@ def get_avg_colors(name, image, path):
         print("Range of shade value: {:.2f}\n".format(max - min))
 
 
-#----------------< AUDIO GENERATION >----------------#
+#----------------< AUDIO GENERATION DEFINITIONS >----------------#
 
 
-def initColorSynth( color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1 ):
-    print("Boing! initColorSynth() called.")
+def initColorSynth( id, color, synth, attack, decay, v_f, v_v, octave, pitch_1 ):
 
+    print(color + " interpretation playing back now...")
+    mixer.create_track(id, synth, vibrato_frequency=v_f, vibrato_variance=v_v, attack=attack, decay=decay)
+
+    mixer.add_note(id, note=pitch_1, octave=octave, duration=duration)
 
 
 #----------------< IMAGE PROCESSING >----------------#
@@ -112,30 +129,39 @@ if show:
 
 mixer = Mixer(44100, volume)
 
-rs = colorSynths[0]
-initColorSynth( rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
+# rs = colorSynths[0]
+# initColorSynth( 0, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
 
-# for i in range(getChannels(img)):
-#     initColorSynth()
+for i in range(getChannels(img)):
+    rs = colorSynths[i-1]
+    initColorSynth( i-1, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
 
-#
-# mixer.create_track(0, SAWTOOTH_WAVE, vibrato_frequency=0.5, vibrato_variance=0.0, attack=0.01, decay=0.1)
-# mixer.create_track(1, SINE_WAVE, attack=0.01, decay=0.1)
-# mixer.create_track(2, SINE_WAVE, attack=0.01, decay=0.1)
-# mixer.create_track(3, SINE_WAVE, vibrato_frequency=0.03, vibrato_variance=0.01, attack=0.01, decay=0.1)
-#
-# mixer.add_note(0, note='f', octave=4, duration=2.0, endnote='ab')
-# mixer.add_note(1, note='db', octave=5, duration=2.0, endnote='f')
-# mixer.add_note(2, note='ab', octave=2, duration=2.0)
-# mixer.add_note(3, note='ab', octave=3, duration=1.0)
-#
-# mixer.add_note(3, note='gb', octave=3, duration=1.0)
-#
-# mixer.add_note(0, note='ab', octave=4, duration=2.0)
-# mixer.add_note(1, note='f', octave=5, duration=2.0)
-# mixer.add_note(2, note='db', octave=2, duration=2.0)
-# mixer.add_note(3, note='gb', octave=3, duration=2.0)
-
-mixer.write_wav('gen.wav')
-
+mixer.write_wav('audio.wav')
 samples = mixer.mix()
+
+
+#----------------< AUDIO PLAYBACK >----------------#
+
+
+# Set chunk size of 1024 samples per data frame
+chunk = 1024
+wf = wave.open('audio.wav', 'rb')
+p = pyaudio.PyAudio()
+
+# Open a .Stream object to write the WAV file to
+# 'output = True' indicates that the sound will be played rather than recorded
+stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
+                channels = wf.getnchannels(),
+                rate = wf.getframerate(),
+                output = True)
+
+# Read data in chunks
+data = wf.readframes(chunk)
+
+# Play the sound by writing the audio data to the stream
+while data != '':
+    stream.write(data)
+    data = wf.readframes(chunk)
+
+stream.close()
+p.terminate()
