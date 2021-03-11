@@ -22,11 +22,13 @@ import pyaudio
 import wave
 
 
-#-----------< IMAGE GLOBALS >-----------#
+
+#-----------< GLOBALS >-----------#
 
 
 # toggle whether the image should be displayed to the screen
-show = 0
+TOGGLE_SHOW_IMAGE = 1
+
 # select which image, of those listed below, to select
 image_selected = 1
 
@@ -38,19 +40,19 @@ image_pool =   [
                 ['lenna', 'lenna.png']
                                        ]
 
+
+# Toggle generation and playback of audio
+TOGGLE_MAKE_AUDIO = 0
+volume = 0.4
+duration = 5
+
+
 img = image_pool[image_selected - 1]
 
 # append testImages dir to paths
 path = "testImages/"
 for i in image_pool:
     i[1] = path + i[1]
-
-
-#-----------< AUDIO GLOBALS >-----------#
-
-
-volume = 0.4
-duration = 5
 
 # [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
 colorSynths = [
@@ -65,11 +67,81 @@ colorSynths = [
 #----------------< IMAGE ANALYSIS DEFINITIONS >----------------#
 
 
-def getChannels(image):
-    return len(image[0])
+# params: ( image pixel matrix , channel to keep )
+# NOTE: destroys other channels
+# returns pixel matrix of a single color
+def __STRIP_CHANNELS__(mat, chan):
+    ret_mat, row = [], []  # to store/build stripped mat
+    for y in range(len(mat)):
+        row = []
+        for x in range(len(mat[y])):
+            row.append(mat[y][x][chan])
+        ret_mat.append(row)
+    return np.array(ret_mat)
 
-def isgray(imgpath):
-    image = cv2.imread(imgpath)
+
+# params: ( image pixel matrix , channel to keep )
+# NOTES: retains other empty channels in list as 0's
+# returns pixel matrix of a single color
+def __STRIP_INPLACE__(mat, chan):
+    for y in range(len(mat)):
+        for x in range(len(mat[y])):
+            for val in range(3): # for each pixel value
+                if val != chan:
+                    mat[y][x][val] = 0
+    return np.array(mat)
+
+# params: ( image pixel matrix, channel,
+# returns: color channels center of mass
+def __COM__(full_mat):
+    w, h =__getImageDimensions__(full_mat)
+
+    channels_COM = [] # to store return string
+    # strip color channels from each other
+
+    for channel in range(getChannels(full_mat)):
+        print("Performing center of mass function on color channel {}...".format(channel))
+
+        mat = __STRIP_CHANNELS__(full_mat, channel)
+
+        # calculate Xbar, Ybar
+        sum_over_columns = [sum(x) for x in zip(*mat)]
+        sum_over_rows = [sum(x) for x in mat]
+        x_weights, x_masses, y_weights, y_masses = [],[],[],[]
+        for i in range(w):
+            x_weights.append( i * sum_over_columns[i] ) # mass times position
+            x_masses.append( sum_over_columns[i]  ) # mass
+        x_bar = sum( x_weights ) / sum( x_masses )
+
+        for i in range(h):
+            y_weights.append( i * sum_over_rows[i] ) # mass times position
+            y_masses.append( sum_over_rows[i]  ) # mass
+        y_bar = sum( y_weights ) / sum( y_masses )
+
+        # print("x_bar: {:.4f}\ny_bar: {:.4f}".format(x_bar,y_bar))
+        channels_COM.append( [ int(round(x_bar)), int(round(y_bar)) ] )
+
+    return channels_COM
+
+
+# params: ( image pixel matrix )
+# returns ( width, height )
+def __getImageDimensions__(mat):
+    w = len(mat[0])
+    h = len(mat)
+    return (w, h)
+
+# params: ( image pixel matrix )
+# returns no. of pixel color channels
+def getChannels(image):
+    if isgray(image):
+        return len(image[0])
+    else:
+        return len(image[0][0])
+
+# params: ( image pixel matrix )
+# returns 1 if gray, else 0
+def isgray(image):
     if len(image.shape) < 3: return True
     if image.shape[2]  == 1: return True
     b,g,r = image[:,:,0], image[:,:,1], image[:,:,2]
@@ -117,7 +189,6 @@ def analyze_image(name, image, path):
             retStats.append([color[1], mean, (val_max - val_min)])
 
 
-
         avg_color = [np.sum(blue) / count, np.sum(green) / count, np.sum(red) / count]
         print("Average color value: [{:.2f}, {:.2f}, {:.2f}]".format(avg_color[0], avg_color[1], avg_color[2]))
         print("Range of color: {:.2f}".format( (np.max(pixel_sums)-np.min(pixel_sums)) )) # (a ratio of difference between colors)
@@ -156,72 +227,118 @@ def initColorSynth( iden, analysis, color, synth, attack, decay, v_f, v_v, octav
 # [ [name, path, pixelData], ... ]
 img.append( cv2.imread(img[1]) )
 
-# [ [attribute, mean, range, ...]
-imgAnal = analyze_image(img[0], img[2], img[1])
+# [ [channel attribute, mean, range, ...]
+# imgAnal = analyze_image(img[0], img[2], img[1])
 
-if show:
-    cv2.imshow(img[1], img[2])
+circles = __COM__(img[2])
+colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+# print(circles)
 
+if TOGGLE_SHOW_IMAGE:
+    w, h = __getImageDimensions__(img[2])
+    for circle in range(getChannels(img[2])):
+        image = cv2.circle(
+                        img[2], (circles[circle][0],circles[circle][1]),
+                        int( w/8 ),
+                        colors[circle],
+                        int( w/150 ) )
+
+
+if TOGGLE_SHOW_IMAGE:
+    showImage = img[2]
+    width, height = __getImageDimensions__(img[2])
+    if (width > 800) or (height > 800): # if image is larger than 800 pixels in either dimension
+        factor = 0.2  # percent of original size
+        width = int(showImage.shape[1] * factor)
+        height = int(showImage.shape[0] * factor)
+        dimensions = (width, height)
+        # print("Resized image: {}, {}".format(width, height))
+
+        showImage = cv2.resize(showImage, dimensions, interpolation = cv2.INTER_AREA)
+
+    print("Image displayed!")
+    cv2.imshow(img[0], showImage)
+    #
+    # cv2.imshow('Channel 0', __STRIP_INPLACE__(showImage, 0))
+    # cv2.imshow('Channel 1', __STRIP_INPLACE__(showImage, 1))
+    # cv2.imshow('Channel 2', __STRIP_INPLACE__(showImage, 2))
+
+    b = showImage.copy()
+    # set green and red channels to 0
+    b[:, :, 1] = 0
+    b[:, :, 2] = 0
+
+    g = showImage.copy()
+    # set blue and red channels to 0
+    g[:, :, 0] = 0
+    g[:, :, 2] = 0
+
+    r = showImage.copy()
+    # set blue and green channels to 0
+    r[:, :, 0] = 0
+    r[:, :, 1] = 0
+
+    # RGB - Blue
+    cv2.imshow('B-RGB', b)
+
+    # RGB - Green
+    cv2.imshow('G-RGB', g)
+
+    # RGB - Red
+    cv2.imshow('R-RGB', r)
 
 #----------------< AUDIO GENERATION >----------------#
 
+if TOGGLE_MAKE_AUDIO:
+    mixer = Mixer(44100, volume)
 
-mixer = Mixer(44100, volume)
+    # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
+    imgAnal = analyze_image(img[0], img[2], img[1])
 
-# [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
+    if isgray(img[1]): # only get value synth
+        rs = colorSynths[3]
+        anal = imgAnal[0]
+        initColorSynth(0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
 
-if isgray(img[1]): # only get value synth
-    rs = colorSynths[3]
-    anal = imgAnal[0]
-    initColorSynth(0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
+    else: # get all color synths
+        for i in range(4):
+            rs = colorSynths[i]
+            anal = imgAnal[i]
+            initColorSynth( i-1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
 
-    # initColorSynth(0, rs[0], rs[1], rs[2] * (255 - mean), rs[3], rs[4], rs[5], rs[6], rs[7])
 
-    # TO DO:
-    #
-    #
-    # PASS INITCOLORSYNTH A LIST OF STATISTICS ON IMAGE FOR AUDIO GEN
-    #
-    # for use as seen above in line 142
-
-else: # get all color synths
-    for i in range(4):
-        rs = colorSynths[i]
-        anal = imgAnal[i]
-        initColorSynth( i-1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
-
-mixer.write_wav('audio.wav')
-samples = mixer.mix()
+    mixer.write_wav('audio.wav')
+    samples = mixer.mix()
 
 
 #----------------< AUDIO PLAYBACK >----------------#
 
+if TOGGLE_MAKE_AUDIO:
+    print("Interpretation playing back now...")
 
-print("Interpretation playing back now...")
+    # Set chunk size of 1024 samples per data frame
+    chunk = 1024
+    wf = wave.open('audio.wav', 'rb')
+    p = pyaudio.PyAudio()
 
-# Set chunk size of 1024 samples per data frame
-chunk = 1024
-wf = wave.open('audio.wav', 'rb')
-p = pyaudio.PyAudio()
+    # Open a .Stream object to write the WAV file to
+    stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
+                    channels = wf.getnchannels(),
+                    rate = wf.getframerate(),
+                    output = True) # indicates playback as opposed to recording
 
-# Open a .Stream object to write the WAV file to
-stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
-                channels = wf.getnchannels(),
-                rate = wf.getframerate(),
-                output = True) # indicates playback as opposed to recording
-
-data = wf.readframes(chunk)
-while data != '':
-    stream.write(data)
     data = wf.readframes(chunk)
+    while data != '':
+        stream.write(data)
+        data = wf.readframes(chunk)
 
-stream.close()
-p.terminate()
+    stream.close()
+    p.terminate()
 
 
 #----------------< IMAGE MANAGEMENT >----------------#
 
-if show:
+if TOGGLE_SHOW_IMAGE:
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
