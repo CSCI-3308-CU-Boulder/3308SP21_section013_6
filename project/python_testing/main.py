@@ -26,7 +26,7 @@ import wave
 
 
 show = 0
-test_count = 1
+image_selected = 2
 
 # [ [name, path, pixelData], ... ]
 image_pool =   [
@@ -34,7 +34,7 @@ image_pool =   [
                 ['lenna', 'lenna.png']
                                        ]
 
-img = image_pool[test_count - 1]
+img = image_pool[image_selected - 1]
 
 
 #-----------< AUDIO GLOBALS >-----------#
@@ -67,9 +67,12 @@ def isgray(imgpath):
     if (b==g).all() and (b==r).all(): return True
     return False
 
-def get_avg_colors(name, image, path):
+def analyze_image(name, image, path):
+
+    retStats = [] # return stats
+
     if isgray(path):
-        print("\n ---- Analyzing {} in grayscale ---- ".format(name))
+        print("\n----- Analyzing {} in grayscale -----".format(name))
         mean = np.mean(image)
         max = np.max(image)
         min = np.min(image)
@@ -77,8 +80,9 @@ def get_avg_colors(name, image, path):
         print("Max value: {:.2f}".format(max))
         print("Min value: {:.2f}".format(min))
         print("Range of value: {:.2f}\n".format(max - min))
+        retStats.append([ 'gray', mean, (max-min) ])
     else:
-        print("\n ---- Analyzing {} in BGR color ---- ".format(name))
+        print("\n----- Analyzing {} in BGR color -----".format(name))
         blue = []
         green = []
         red = []
@@ -91,7 +95,6 @@ def get_avg_colors(name, image, path):
                 green.append(pixel[1])
                 red.append(pixel[2])
                 pixel_sums.append( ( (pixel[0]/3) + (pixel[1]/3) + (pixel[2]/3) ) )
-        # print(pixel_sums)
 
         for color in [ [blue, "blue"], [green, "green"], [red, "red"] ]:
             mean = np.mean(color[0])
@@ -102,6 +105,10 @@ def get_avg_colors(name, image, path):
             print("Min {}: {:.2f}".format(color[1], min))
             print("Range {}: {:.2f}\n".format(color[1], (max - min)) )
 
+            retStats.append([color[1], mean, (max - min)])
+
+
+
         avg_color = [np.sum(blue) / count, np.sum(green) / count, np.sum(red) / count]
         print("Average color value: [{:.2f}, {:.2f}, {:.2f}]".format(avg_color[0], avg_color[1], avg_color[2]))
         print("Range of color: {:.2f}".format( (np.max(pixel_sums)-np.min(pixel_sums)) )) # (a ratio of difference between colors)
@@ -109,10 +116,15 @@ def get_avg_colors(name, image, path):
         mean = np.mean(image)
         max = np.max(image)
         min = np.min(image)
+
         print("Average shade value: {:.2f}".format(mean))
         print("Max shade value: {:.2f}".format(max))
         print("Min shade value: {:.2f}".format(min))
-        print("Range of shade value: {:.2f}\n".format(max - min))
+        print("Range of shade value: {:.2f}\n".format(max-min))
+
+        retStats.append([ 'shade', mean, (max-min) ])
+
+    return retStats
 
 
 #----------------< AUDIO GENERATION DEFINITIONS >----------------#
@@ -120,7 +132,7 @@ def get_avg_colors(name, image, path):
 
 def initColorSynth( id, color, synth, attack, decay, v_f, v_v, octave, pitch_1 ):
 
-    print(color + " interpretation playing back now...")
+    print(color + " tones being generated...")
     mixer.create_track(id, synth, vibrato_frequency=v_f, vibrato_variance=v_v, attack=attack, decay=decay)
 
     mixer.add_note(id, note=pitch_1, octave=octave, duration=duration)
@@ -131,7 +143,10 @@ def initColorSynth( id, color, synth, attack, decay, v_f, v_v, octave, pitch_1 )
 
 # [ [name, path, pixelData], ... ]
 img.append( cv2.imread(img[1]) )
-get_avg_colors(img[0], img[2], img[1])
+
+# [ [attribute, mean, range, ...]
+imgAnal = analyze_image(img[0], img[2], img[1])
+print("Image stats ([attribute, mean, range, ...]):\n {}\n".format(imgAnal))
 
 if show:
     cv2.imshow(img[1], img[2])
@@ -160,8 +175,8 @@ if isgray(img[1]): # only get value synth
     # for use as seen above in line 142
 
 else: # get all color synths
-    for i in range(getChannels(img)):
-        rs = colorSynths[i-1]
+    for i in range(4):
+        rs = colorSynths[i]
         initColorSynth( i-1, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
 
 mixer.write_wav('audio.wav')
@@ -170,6 +185,8 @@ samples = mixer.mix()
 
 #----------------< AUDIO PLAYBACK >----------------#
 
+
+print("Interpretation playing back now...")
 
 # Set chunk size of 1024 samples per data frame
 chunk = 1024
