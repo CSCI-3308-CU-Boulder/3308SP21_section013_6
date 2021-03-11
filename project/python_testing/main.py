@@ -28,7 +28,7 @@ import wave
 show = 0
 image_selected = 2
 
-# [ [name, path, pixelData], ... ]
+# [ [name, path], ... ]
 image_pool =   [
                 ['fabio', 'fabio.jpg'],
                 ['lenna', 'lenna.png']
@@ -56,8 +56,8 @@ colorSynths = [
 #----------------< IMAGE ANALYSIS DEFINITIONS >----------------#
 
 
-def getChannels(img):
-    return len(img[0])
+def getChannels(image):
+    return len(image[0])
 
 def isgray(imgpath):
     image = cv2.imread(imgpath)
@@ -74,13 +74,13 @@ def analyze_image(name, image, path):
     if isgray(path):
         print("\n----- Analyzing {} in grayscale -----".format(name))
         mean = np.mean(image)
-        max = np.max(image)
-        min = np.min(image)
+        val_max = np.max(image)
+        val_min = np.min(image)
         print("Average value: {:.2f}".format(mean))
-        print("Max value: {:.2f}".format(max))
-        print("Min value: {:.2f}".format(min))
-        print("Range of value: {:.2f}\n".format(max - min))
-        retStats.append([ 'gray', mean, (max-min) ])
+        print("Max value: {:.2f}".format(val_max))
+        print("Min value: {:.2f}".format(val_min))
+        print("Range of value: {:.2f}\n".format(val_max - val_min))
+        retStats.append([ 'gray', mean, (val_max-val_min) ])
     else:
         print("\n----- Analyzing {} in BGR color -----".format(name))
         blue = []
@@ -98,14 +98,14 @@ def analyze_image(name, image, path):
 
         for color in [ [blue, "blue"], [green, "green"], [red, "red"] ]:
             mean = np.mean(color[0])
-            max = np.max(color[0])
-            min = np.min(color[0])
+            val_max = np.max(color[0])
+            val_min = np.min(color[0])
             print("Average {}: {:.2f}".format(color[1], mean))
-            print("Max {}: {:.2f}".format(color[1], max))
-            print("Min {}: {:.2f}".format(color[1], min))
-            print("Range {}: {:.2f}\n".format(color[1], (max - min)) )
+            print("Max {}: {:.2f}".format(color[1], val_max))
+            print("Min {}: {:.2f}".format(color[1], val_min))
+            print("Range {}: {:.2f}\n".format(color[1], (val_max - val_min)) )
 
-            retStats.append([color[1], mean, (max - min)])
+            retStats.append([color[1], mean, (val_max - val_min)])
 
 
 
@@ -114,15 +114,15 @@ def analyze_image(name, image, path):
         print("Range of color: {:.2f}".format( (np.max(pixel_sums)-np.min(pixel_sums)) )) # (a ratio of difference between colors)
 
         mean = np.mean(image)
-        max = np.max(image)
-        min = np.min(image)
+        val_max = np.max(image)
+        val_min = np.min(image)
 
         print("Average shade value: {:.2f}".format(mean))
-        print("Max shade value: {:.2f}".format(max))
-        print("Min shade value: {:.2f}".format(min))
-        print("Range of shade value: {:.2f}\n".format(max-min))
+        print("Max shade value: {:.2f}".format(val_max))
+        print("Min shade value: {:.2f}".format(val_min))
+        print("Range of shade value: {:.2f}\n".format(val_max-val_min))
 
-        retStats.append([ 'shade', mean, (max-min) ])
+        retStats.append([ 'shade', mean, (val_max-val_min) ])
 
     return retStats
 
@@ -130,12 +130,15 @@ def analyze_image(name, image, path):
 #----------------< AUDIO GENERATION DEFINITIONS >----------------#
 
 
-def initColorSynth( id, color, synth, attack, decay, v_f, v_v, octave, pitch_1 ):
+def initColorSynth( iden, analysis, color, synth, attack, decay, v_f, v_v, octave, pitch_1 ):
 
     print(color + " tones being generated...")
-    mixer.create_track(id, synth, vibrato_frequency=v_f, vibrato_variance=v_v, attack=attack, decay=decay)
+    print("Analysis...\n{}\n".format(analysis))
+    mixer.create_track(iden, synth, vibrato_frequency=v_f, vibrato_variance=v_v, attack=attack, decay=decay)
 
-    mixer.add_note(id, note=pitch_1, octave=octave, duration=duration)
+    presence = analysis[1]/255  # calculates the presence of each color in an image
+                                # (normalize the mean to 0-1 to stuff into amplitude)
+    mixer.add_note(iden, note=pitch_1, octave=octave, duration=duration, amplitude=presence)
 
 
 #----------------< IMAGE PROCESSING >----------------#
@@ -146,7 +149,6 @@ img.append( cv2.imread(img[1]) )
 
 # [ [attribute, mean, range, ...]
 imgAnal = analyze_image(img[0], img[2], img[1])
-print("Image stats ([attribute, mean, range, ...]):\n {}\n".format(imgAnal))
 
 if show:
     cv2.imshow(img[1], img[2])
@@ -159,11 +161,12 @@ if show:
 
 mixer = Mixer(44100, volume)
 
-# [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
+# [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
 
 if isgray(img[1]): # only get value synth
     rs = colorSynths[3]
-    initColorSynth(0, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
+    anal = imgAnal[0]
+    initColorSynth(0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
 
     # initColorSynth(0, rs[0], rs[1], rs[2] * (255 - mean), rs[3], rs[4], rs[5], rs[6], rs[7])
 
@@ -177,7 +180,8 @@ if isgray(img[1]): # only get value synth
 else: # get all color synths
     for i in range(4):
         rs = colorSynths[i]
-        initColorSynth( i-1, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
+        anal = imgAnal[i]
+        initColorSynth( i-1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
 
 mixer.write_wav('audio.wav')
 samples = mixer.mix()
