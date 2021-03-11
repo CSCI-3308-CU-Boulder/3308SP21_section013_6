@@ -14,7 +14,6 @@
 #--------------------------------------------------------
 
 
-
 import numpy as np
 import cv2
 from tones import SINE_WAVE, SAWTOOTH_WAVE, TRIANGLE_WAVE, SQUARE_WAVE
@@ -22,14 +21,19 @@ from tones.mixer import Mixer
 import pyaudio
 import wave
 
+
 #-----------< IMAGE GLOBALS >-----------#
 
 
+# toggle whether the image should be displayed to the screen
 show = 0
-image_selected = 2
+# select which image, of those listed below, to select
+image_selected = 1
 
+# format of images in this list is:
 # [ [name, path], ... ]
 image_pool =   [
+                ['hedgehog', 'hedgehog.jpeg'],
                 ['fabio', 'fabio.jpg'],
                 ['lenna', 'lenna.png']
                                        ]
@@ -45,7 +49,7 @@ for i in image_pool:
 #-----------< AUDIO GLOBALS >-----------#
 
 
-volume = 0.1
+volume = 0.4
 duration = 5
 
 # [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
@@ -157,8 +161,6 @@ imgAnal = analyze_image(img[0], img[2], img[1])
 
 if show:
     cv2.imshow(img[1], img[2])
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 
 #----------------< AUDIO GENERATION >----------------#
@@ -215,3 +217,11 @@ while data != '':
 
 stream.close()
 p.terminate()
+
+
+#----------------< IMAGE MANAGEMENT >----------------#
+
+if show:
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
