@@ -1,7 +1,18 @@
 
+#--------------------------------------------------------
+#
+#
 # Author: Spencer Stepanek and team 013_6
 # CSCI_3308, Photophonic Web-App Project
 # Created on 2/16/21
+#
+#
+# Tones Docs: https://github.com/eriknyquist/tones
+# OpenCV Docs: https://docs.opencv.org/master/index.html
+#
+#
+#--------------------------------------------------------
+
 
 
 import numpy as np
@@ -49,10 +60,10 @@ def getChannels(img):
     return len(img[0])
 
 def isgray(imgpath):
-    img = cv2.imread(imgpath)
-    if len(img.shape) < 3: return True
-    if img.shape[2]  == 1: return True
-    b,g,r = img[:,:,0], img[:,:,1], img[:,:,2]
+    image = cv2.imread(imgpath)
+    if len(image.shape) < 3: return True
+    if image.shape[2]  == 1: return True
+    b,g,r = image[:,:,0], image[:,:,1], image[:,:,2]
     if (b==g).all() and (b==r).all(): return True
     return False
 
