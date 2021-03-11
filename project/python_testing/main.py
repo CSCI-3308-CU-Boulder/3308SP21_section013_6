@@ -36,6 +36,11 @@ image_pool =   [
 
 img = image_pool[image_selected - 1]
 
+# append testImages dir to paths
+path = "testImages/"
+for i in image_pool:
+    i[1] = path + i[1]
+
 
 #-----------< AUDIO GLOBALS >-----------#
 
