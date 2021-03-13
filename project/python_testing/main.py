@@ -14,7 +14,6 @@
 #--------------------------------------------------------
 
 
-from app import app
 import numpy as np
 import cv2
 from tones import SINE_WAVE, SAWTOOTH_WAVE, TRIANGLE_WAVE, SQUARE_WAVE
@@ -45,7 +44,7 @@ image_pool =   [
 
 
 # Toggle generation and playback of audio
-TOGGLE_MAKE_AUDIO = 0
+TOGGLE_MAKE_AUDIO = 1
 volume = 0.4
 duration = 5
 
@@ -65,6 +64,8 @@ colorSynths = [
     [ 'value', SQUARE_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'd'],
     [ 'alpha', SAWTOOTH_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'bb'],
     ]
+
+print("Running...")
 
 
 #----------------< IMAGE ANALYSIS DEFINITIONS >----------------#
@@ -291,7 +292,7 @@ if TOGGLE_MAKE_AUDIO:
     # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
     imgAnal = analyze_image(img[0], img[2], img[1])
 
-    if isgray(img[1]): # only get value synth
+    if isgray(img[2]): # only get value synth
         rs = colorSynths[3]
         anal = imgAnal[0]
         initColorSynth(0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
