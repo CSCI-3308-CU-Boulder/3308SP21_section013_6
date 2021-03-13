@@ -14,12 +14,14 @@
 #--------------------------------------------------------
 
 
+import sys
 import numpy as np
 import cv2
 from tones import SINE_WAVE, SAWTOOTH_WAVE, TRIANGLE_WAVE, SQUARE_WAVE
 from tones.mixer import Mixer
 import pyaudio
 import wave
+from playsound import playsound
 
 
 
@@ -28,11 +30,17 @@ import wave
 
 # toggle whether the image should be displayed to the screen
 TOGGLE_SHOW_IMAGE = 1
+TOGGLE_DRAW = 1
+TOGGLE_ANALYSIS = 0
+
+# Toggle generation and playback of audio
+TOGGLE_MAKE_AUDIO = 1
+volume = 0.4
+duration = 5
 
 # select which image, of those listed below, to select
 image_selected = 1
 
-TOGGLE_DRAW = 1
 
 # format of images in this list is:
 # [ [name, path], ... ]
@@ -42,19 +50,12 @@ image_pool =   [
                 ['lenna', 'lenna.png']
                                        ]
 
-
-# Toggle generation and playback of audio
-TOGGLE_MAKE_AUDIO = 1
-volume = 0.4
-duration = 5
-
-
 img = image_pool[image_selected - 1]
 
 # append testImages dir to paths
 path = "testImages/"
-for i in image_pool:
-    i[1] = path + i[1]
+for image in image_pool:
+    image[1] = path + image[1]
 
 # [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
 colorSynths = [
@@ -172,18 +173,20 @@ def analyze_image(name, image, path):
 
     retStats = [] # return stats
 
-    if isgray(path):
-        print("\n----- Analyzing {} in grayscale -----".format(name))
+    if isgray(image):
         mean = np.mean(image)
         val_max = np.max(image)
         val_min = np.min(image)
-        print("Average value: {:.2f}".format(mean))
-        print("Max value: {:.2f}".format(val_max))
-        print("Min value: {:.2f}".format(val_min))
-        print("Range of value: {:.2f}\n".format(val_max - val_min))
-        retStats.append([ 'gray', mean, (val_max-val_min) ])
+        val_range = val_max - val_min
+
+        if TOGGLE_ANALYSIS:
+            print("\n----- Analyzing {} in grayscale -----".format(name))
+            print("Average value: {:.2f}".format(mean))
+            print("Max value: {:.2f}".format(val_max))
+            print("Min value: {:.2f}".format(val_min))
+            print("Range of value: {:.2f}\n".format(val_range))
+        retStats.append([ 'gray', mean, val_range ])
     else:
-        print("\n----- Analyzing {} in BGR color -----".format(name))
         blue = []
         green = []
         red = []
@@ -197,32 +200,40 @@ def analyze_image(name, image, path):
                 red.append(pixel[2])
                 pixel_sums.append( ( (pixel[0]/3) + (pixel[1]/3) + (pixel[2]/3) ) )
 
+        if TOGGLE_ANALYSIS:
+            print("\n----- Analyzing {} in BGR color -----".format(name))
+
         for color in [ [blue, "blue"], [green, "green"], [red, "red"] ]:
             mean = np.mean(color[0])
             val_max = np.max(color[0])
             val_min = np.min(color[0])
-            print("Average {}: {:.2f}".format(color[1], mean))
-            print("Max {}: {:.2f}".format(color[1], val_max))
-            print("Min {}: {:.2f}".format(color[1], val_min))
-            print("Range {}: {:.2f}\n".format(color[1], (val_max - val_min)) )
+            val_range = val_max - val_min
+            if TOGGLE_ANALYSIS:
+                print("Average {}: {:.2f}".format(color[1], mean))
+                print("Max {}: {:.2f}".format(color[1], val_max))
+                print("Min {}: {:.2f}".format(color[1], val_min))
+                print("Range {}: {:.2f}\n".format(color[1], val_range) )
 
-            retStats.append([color[1], mean, (val_max - val_min)])
+            retStats.append([color[1], mean, val_range])
 
 
         avg_color = [np.sum(blue) / count, np.sum(green) / count, np.sum(red) / count]
-        print("Average color value: [{:.2f}, {:.2f}, {:.2f}]".format(avg_color[0], avg_color[1], avg_color[2]))
-        print("Range of color: {:.2f}".format( (np.max(pixel_sums)-np.min(pixel_sums)) )) # (a ratio of difference between colors)
+        if TOGGLE_ANALYSIS:
+            print("Average color value: [{:.2f}, {:.2f}, {:.2f}]".format(avg_color[0], avg_color[1], avg_color[2]))
+            print("Range of color: {:.2f}".format( (np.max(pixel_sums)-np.min(pixel_sums)) )) # (a ratio of difference between colors)
 
         mean = np.mean(image)
         val_max = np.max(image)
         val_min = np.min(image)
+        val_range = val_max - val_min
 
-        print("Average shade value: {:.2f}".format(mean))
-        print("Max shade value: {:.2f}".format(val_max))
-        print("Min shade value: {:.2f}".format(val_min))
-        print("Range of shade value: {:.2f}\n".format(val_max-val_min))
+        if TOGGLE_ANALYSIS:
+            print("Average shade value: {:.2f}".format(mean))
+            print("Max shade value: {:.2f}".format(val_max))
+            print("Min shade value: {:.2f}".format(val_min))
+            print("Range of shade value: {:.2f}\n".format(val_range))
 
-        retStats.append([ 'shade', mean, (val_max-val_min) ])
+        retStats.append([ 'shade', mean, val_range ])
 
     return retStats
 
@@ -230,10 +241,11 @@ def analyze_image(name, image, path):
 #----------------< AUDIO GENERATION DEFINITIONS >----------------#
 
 
-def initColorSynth( iden, analysis, color, synth, attack=1, decay=1, v_f=0, v_=0, octave=4, pitch_1='c' ):
+def initColorSynth( iden, analysis, color, synth, attack=1, decay=1, v_f=0, v_v=0, octave=4, pitch_1='c' ):
 
-    print(color + " tones being generated...")
-    print("Analysis...\n{}\n".format(analysis))
+    if TOGGLE_ANALYSIS:
+        print(color + " tones being generated...")
+        print("Analysis...\n{}\n".format(analysis))
     mixer.create_track(iden, synth, vibrato_frequency=v_f, vibrato_variance=v_v, attack=attack, decay=decay)
 
     presence = analysis[1]/255  # calculates the presence of each color in an image
@@ -244,13 +256,24 @@ def initColorSynth( iden, analysis, color, synth, attack=1, decay=1, v_f=0, v_=0
 #----------------< IMAGE PROCESSING >----------------#
 
 
-# [ [name, path, pixelData], ... ]
-img.append( cv2.imread(img[1]) )
+# img = [ [name, path, pixelData], ... ]
+isImage = cv2.imread(img[1])
+img.append(isImage)
 
 # [ [channel attribute, mean, range, ...]
 # imgAnal = analyze_image(img[0], img[2], img[1])
 
-circles = __COM__(img[2])
+print("Try-except")
+
+try:
+    circles = __COM__(img[2])
+    print("Try")
+except TypeError:
+    print("Except")
+    sys.exit("[ERROR]: Inputted path must be an image. "
+             "\nCheck file names and extensions in image_pool "
+             "to ensure they match the image (explicitly write out the file extension).")
+
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 # print(circles)
 
@@ -262,6 +285,60 @@ if TOGGLE_SHOW_IMAGE and TOGGLE_DRAW:
                         int( w/8 ),
                         colors[circle],
                         int( w/150 ) )
+
+
+#----------------< AUDIO GENERATION >----------------#
+
+if TOGGLE_MAKE_AUDIO:
+    print("Writing/playing audio...")
+    mixer = Mixer(44100, volume)
+
+    # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
+    imgAnal = analyze_image(img[0], img[2], img[1])
+
+    if isgray(img[2]): # only get value synth
+        rs = colorSynths[3]
+        anal = imgAnal[0]
+        initColorSynth(0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
+
+    else: # get all color synths
+        for i in range(4):
+            rs = colorSynths[i]
+            anal = imgAnal[i]
+            initColorSynth( i-1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
+
+    mixer.write_wav('audio.wav')
+    samples = mixer.mix()
+
+
+#----------------< AUDIO PLAYBACK >----------------#
+
+if TOGGLE_MAKE_AUDIO:
+    print("Interpretation playing back now...")
+    playsound('audio.wav')
+    # wave module method for playing audio file
+    # Set chunk size of 1024 samples per data frame
+    # chunk = 1024
+    # wf = wave.open('audio.wav', 'rb')
+    # p = pyaudio.PyAudio()
+    #
+    # # Open a .Stream object to write the WAV file to
+    # stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
+    #                 channels = wf.getnchannels(),
+    #                 rate = wf.getframerate(),
+    #                 output = True) # indicates playback as opposed to recording
+    #
+    # data = wf.readframes(chunk)
+    # while data != '':
+    #     stream.write(data)
+    #     data = wf.readframes(chunk)
+    #
+    # stream.close()
+    # p.terminate()
+
+
+#----------------< IMAGE MANAGEMENT >----------------#
+
 
 
 if TOGGLE_SHOW_IMAGE:
@@ -283,59 +360,5 @@ if TOGGLE_SHOW_IMAGE:
     cv2.imshow('G-RGB', __STRIP_INPLACE__(showImage, 1))
     cv2.imshow('R-RGB', __STRIP_INPLACE__(showImage, 2))
 
-
-#----------------< AUDIO GENERATION >----------------#
-
-if TOGGLE_MAKE_AUDIO:
-    mixer = Mixer(44100, volume)
-
-    # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
-    imgAnal = analyze_image(img[0], img[2], img[1])
-
-    if isgray(img[2]): # only get value synth
-        rs = colorSynths[3]
-        anal = imgAnal[0]
-        initColorSynth(0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
-
-    else: # get all color synths
-        for i in range(4):
-            rs = colorSynths[i]
-            anal = imgAnal[i]
-            initColorSynth( i-1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
-
-
-    mixer.write_wav('audio.wav')
-    samples = mixer.mix()
-
-
-#----------------< AUDIO PLAYBACK >----------------#
-
-if TOGGLE_MAKE_AUDIO:
-    print("Interpretation playing back now...")
-
-    # Set chunk size of 1024 samples per data frame
-    chunk = 1024
-    wf = wave.open('audio.wav', 'rb')
-    p = pyaudio.PyAudio()
-
-    # Open a .Stream object to write the WAV file to
-    stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
-                    channels = wf.getnchannels(),
-                    rate = wf.getframerate(),
-                    output = True) # indicates playback as opposed to recording
-
-    data = wf.readframes(chunk)
-    while data != '':
-        stream.write(data)
-        data = wf.readframes(chunk)
-
-    stream.close()
-    p.terminate()
-
-
-#----------------< IMAGE MANAGEMENT >----------------#
-
-if TOGGLE_SHOW_IMAGE:
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
