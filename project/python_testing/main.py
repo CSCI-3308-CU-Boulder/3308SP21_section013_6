@@ -22,7 +22,19 @@ from tones.mixer import Mixer
 import pyaudio
 import wave
 from playsound import playsound
+import logging
 
+LOG_LEVEL = logging.DEBUG
+LOGFORMAT = "  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
+from colorlog import ColoredFormatter
+logging.root.setLevel(LOG_LEVEL)
+formatter = ColoredFormatter(LOGFORMAT)
+stream = logging.StreamHandler()
+stream.setLevel(LOG_LEVEL)
+stream.setFormatter(formatter)
+log = logging.getLogger('pythonConfig')
+log.setLevel(LOG_LEVEL)
+log.addHandler(stream)
 
 
 #-----------< GLOBALS >-----------#
@@ -66,10 +78,14 @@ colorSynths = [
     [ 'alpha', SAWTOOTH_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'bb'],
     ]
 
-print("Running...")
 
+# log.debug("A quirky message only developers care about")
+# log.info("Curious users might want to know this")
+# log.warn("Something is wrong and any user should be informed")
+# log.error("Serious stuff, this is red for a reason")
+# log.critical("OH NO everything is on fire")
 
-#----------------< IMAGE ANALYSIS DEFINITIONS >----------------#
+#----------------< IMAGE PROCESSING DEFINITIONS >----------------#
 
 
 # params: ( image pixel matrix , channel to keep )
@@ -121,7 +137,7 @@ def __COM__(full_mat):
 
 
     for channel in range(getChannels(full_mat)):
-        print("Performing center of mass function on color channel {}...".format(channel))
+        log.debug("Performing center of mass function on color channel {}...".format(channel))
 
         mat = channels[channel]
 
@@ -257,22 +273,33 @@ def initColorSynth( iden, analysis, color, synth, attack=1, decay=1, v_f=0, v_v=
 
 
 # img = [ [name, path, pixelData], ... ]
+log.info("Reading image...")
 isImage = cv2.imread(img[1])
 img.append(isImage)
+
+try:
+    isImage = img[2][0][0] # test to get first pixel value
+except TypeError:
+    log.error("Inputted path must be an image. ")
+    log.debug("Check file names and extensions in image_pool to ensure they match the image (explicitly write out the file extension).")
+    sys.exit()
+
+width, height = __getImageDimensions__(img[2])
+if (width > 1500) or (height > 1500): # if image is larger than 800 pixels in either dimension
+    factor = 0.5  # percent of original size
+    width = int(img[2].shape[1] * factor)
+    height = int(img[2].shape[0] * factor)
+    dimensions = (width, height)
+
+    print("Resized image {} for quicker analysis: {}, {}".format(img[1], width, height))
+    img[2] = cv2.resize(img[2], dimensions, interpolation=cv2.INTER_AREA)
+    cv2.imwrite(img[1], img[2])
+
 
 # [ [channel attribute, mean, range, ...]
 # imgAnal = analyze_image(img[0], img[2], img[1])
 
-print("Try-except")
-
-try:
-    circles = __COM__(img[2])
-    print("Try")
-except TypeError:
-    print("Except")
-    sys.exit("[ERROR]: Inputted path must be an image. "
-             "\nCheck file names and extensions in image_pool "
-             "to ensure they match the image (explicitly write out the file extension).")
+circles = __COM__(img[2])
 
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 # print(circles)
@@ -290,7 +317,7 @@ if TOGGLE_SHOW_IMAGE and TOGGLE_DRAW:
 #----------------< AUDIO GENERATION >----------------#
 
 if TOGGLE_MAKE_AUDIO:
-    print("Writing/playing audio...")
+    log.info("Writing/playing audio...")
     mixer = Mixer(44100, volume)
 
     # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
@@ -314,8 +341,10 @@ if TOGGLE_MAKE_AUDIO:
 #----------------< AUDIO PLAYBACK >----------------#
 
 if TOGGLE_MAKE_AUDIO:
-    print("Interpretation playing back now...")
+    
+    log.info("Interpretation playing back now...")
     playsound('audio.wav')
+
     # wave module method for playing audio file
     # Set chunk size of 1024 samples per data frame
     # chunk = 1024
@@ -340,25 +369,14 @@ if TOGGLE_MAKE_AUDIO:
 #----------------< IMAGE MANAGEMENT >----------------#
 
 
-
 if TOGGLE_SHOW_IMAGE:
-    showImage = img[2]
-    width, height = __getImageDimensions__(img[2])
-    if (width > 800) or (height > 800): # if image is larger than 800 pixels in either dimension
-        factor = 0.2  # percent of original size
-        width = int(showImage.shape[1] * factor)
-        height = int(showImage.shape[0] * factor)
-        dimensions = (width, height)
-        # print("Resized image: {}, {}".format(width, height))
 
-        showImage = cv2.resize(showImage, dimensions, interpolation = cv2.INTER_AREA)
+    log.info("Image(s) being displayed")
+    cv2.imshow(img[0], img[2])
 
-    print("Image displayed!")
-    cv2.imshow(img[0], showImage)
-
-    cv2.imshow('B-RGB', __STRIP_INPLACE__(showImage, 0))
-    cv2.imshow('G-RGB', __STRIP_INPLACE__(showImage, 1))
-    cv2.imshow('R-RGB', __STRIP_INPLACE__(showImage, 2))
+    cv2.imshow('B-RGB', __STRIP_INPLACE__(img[2], 0))
+    cv2.imshow('G-RGB', __STRIP_INPLACE__(img[2], 1))
+    cv2.imshow('R-RGB', __STRIP_INPLACE__(img[2], 2))
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
