@@ -32,6 +32,12 @@ def login():
 def account_reg():
     return render_template("account_reg.html")
 
+@app.route("/creations")
+def creations():
+    return render_template("creations.html")
+
+
+
 
 # @app.route("/")
 # def hello_world():
