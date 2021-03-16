@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<style>
+    .inputfile {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+}
+</style>
 <html lang="en">
   <head>
 	<meta charset="utf-8">
@@ -32,10 +42,11 @@
                         
                     </div>
                     <div class="card-body card1">
-                        <h5 class="card-title">Try it for yourself</h5>
-                        <img class="card-img" src="https://www.lifewire.com/thmb/P856-0hi4lmA2xinYWyaEpRIckw=/1920x1326/filters:no_upscale():max_bytes(150000):strip_icc()/cloud-upload-a30f385a928e44e199a62210d578375a.jpg">
-                        <button href="#" class="btn btn-dark my-button">Upload</button>
+                        <img id="card-img" class="card-img" src="https://www.lifewire.com/thmb/P856-0hi4lmA2xinYWyaEpRIckw=/1920x1326/filters:no_upscale():max_bytes(150000):strip_icc()/cloud-upload-a30f385a928e44e199a62210d578375a.jpg">
+                        <input type="file" class="inputfile" name="img_one" id="file-ip-1" accept="image/*" onchange="showPreviewOne(event);"></input></br>
+                        <label for="file-ip-1" class="btn btn-dark my-button">Upload Image</label>
                         <button href="#" class="btn btn-dark my-button">Stock Image</button>
+                        
                     </div>
                 </div>
             </div>
@@ -69,6 +80,18 @@
         </div>
 
 	</div>
+    <script>
+
+        function showPreviewOne(event){
+          if(event.target.files.length > 0){
+            let src = URL.createObjectURL(event.target.files[0]);
+            let preview = document.getElementById("card-img");
+            preview.src = src;
+            preview.style.display = "block";
+          } 
+        }
+    
+      </script>
 
 	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
