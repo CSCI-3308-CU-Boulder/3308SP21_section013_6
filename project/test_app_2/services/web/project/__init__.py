@@ -22,6 +22,17 @@ class User(db.Model):
 def home():
     return render_template("home.html")
 
+
+@app.route("/login")
+def login():
+    return render_template("login.html")
+
+
+@app.route("/account_reg")
+def account_reg():
+    return render_template("account_reg.html")
+
+
 # @app.route("/")
 # def hello_world():
 #     return jsonify(hello="world")
