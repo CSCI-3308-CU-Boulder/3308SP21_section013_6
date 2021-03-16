@@ -291,7 +291,7 @@ if (width > 1500) or (height > 1500): # if image is larger than 800 pixels in ei
     height = int(img[2].shape[0] * factor)
     dimensions = (width, height)
 
-    print("Resized image {} for quicker analysis: {}, {}".format(img[1], width, height))
+    log.warning("Resized image {} for quicker analysis: {}, {}".format(img[1], width, height))
     img[2] = cv2.resize(img[2], dimensions, interpolation=cv2.INTER_AREA)
     cv2.imwrite(img[1], img[2])
 
