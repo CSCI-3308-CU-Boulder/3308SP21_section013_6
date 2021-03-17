@@ -1,0 +1,8 @@
+<!doctype html>
+
+<img src="{{ url_for('static', filename=result) }}" align="middle" />
+
+<p> {{ result }} </p>
+<form action = "http://localhost:5000/test">
+    <p><input type = "submit" value = "Back to Test Page" /></p>
+</form>

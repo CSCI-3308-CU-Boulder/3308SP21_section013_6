@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+import sys
 
 
 app = Flask(__name__)
@@ -38,13 +39,40 @@ def creations():
     return render_template("creations.html")
 
 
-@app.route("/test")
+@app.route('/test',methods = ['POST', 'GET'])
 def test():
     return render_template("test.html")
 
+@app.route('/result', methods=['POST', 'GET'])
+def result():
+    result = request.form
+
+    # Check the docker logs for this info, or maybe docker-compose up without the -d flag
+    print("\nDEBUGGIN yo yo yo is this thing on", flush=True)
+    print(result['submit_button'], flush=True)
+    print("\n")
+
+    if request.method == 'POST':
+        if result['submit_button'] == 'Hedgehog':
+            print("Made it!")
+            return render_template("result.html",result = 'hedgehog.jpeg')
+        elif result['submit_button'] == 'Cloud':
+            return render_template("result.html",result = 'cloud.jpg')
+        else:
+            pass  # unknown
+    elif request.method == 'GET':
+        return render_template('result.html')
+
+
+   # if request.method == 'POST':
+   #    result = request.form
+   #    return render_template("result.html",result = result)
+   # return render_template("result.html")
 
 
 
-# @app.route("/")
-# def hello_world():
-#     return jsonify(hello="world")
+
+# @app.route("/test")
+# def test():
+#     return render_template("test.html")
+
