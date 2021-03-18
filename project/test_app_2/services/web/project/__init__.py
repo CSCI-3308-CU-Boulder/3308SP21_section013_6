@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, render_template, request
 from flask_sqlalchemy import SQLAlchemy
-import sys
+import photophonic # main audio generation and image processing definitions
 
+print(photophonic.theThing())
 
 app = Flask(__name__)
 app.config.from_object("project.config.Config")
@@ -43,6 +44,7 @@ def creations():
 def test():
     return render_template("test.html")
 
+
 @app.route('/result', methods=['POST', 'GET'])
 def result():
     result = request.form
@@ -50,6 +52,7 @@ def result():
     # Check the docker logs for this info, or maybe docker-compose up without the -d flag
     print("\nDEBUGGIN yo yo yo is this thing on", flush=True)
     print(result['submit_button'], flush=True)
+    # print(photophonic.theThing())
     print("\n")
 
     if request.method == 'POST':
