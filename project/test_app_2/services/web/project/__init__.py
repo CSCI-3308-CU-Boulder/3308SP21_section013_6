@@ -1,8 +1,7 @@
 from flask import Flask, jsonify, render_template, request
 from flask_sqlalchemy import SQLAlchemy
-import photophonic # main audio generation and image processing definitions
+import photophonic as pp # main audio generation and image processing definitions
 
-print(photophonic.theThing())
 
 app = Flask(__name__)
 app.config.from_object("project.config.Config")
@@ -47,35 +46,12 @@ def test():
 
 @app.route('/result', methods=['POST', 'GET'])
 def result():
-    result = request.form
-
-    # Check the docker logs for this info, or maybe docker-compose up without the -d flag
-    print("\nDEBUGGIN yo yo yo is this thing on", flush=True)
-    print(result['submit_button'], flush=True)
-    # print(photophonic.theThing())
-    print("\n")
-
     if request.method == 'POST':
-        if result['submit_button'] == 'Hedgehog':
-            print("Made it!")
+        if request.form['submit_button'] == 'Hedgehog':
             return render_template("result.html",result = 'hedgehog.jpeg')
-        elif result['submit_button'] == 'Cloud':
+        elif request.form['submit_button'] == 'Cloud':
             return render_template("result.html",result = 'cloud.jpg')
         else:
             pass  # unknown
     elif request.method == 'GET':
         return render_template('result.html')
-
-
-   # if request.method == 'POST':
-   #    result = request.form
-   #    return render_template("result.html",result = result)
-   # return render_template("result.html")
-
-
-
-
-# @app.route("/test")
-# def test():
-#     return render_template("test.html")
-
