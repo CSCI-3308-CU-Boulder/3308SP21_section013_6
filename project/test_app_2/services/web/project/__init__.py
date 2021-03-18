@@ -50,7 +50,7 @@ def result():
         if request.form['submit_button'] == 'Hedgehog':
             return render_template( "result.html", result='hedgehog.jpeg', dimensions=pp.getImageDimensions('hedgehog.jpeg') )
         elif request.form['submit_button'] == 'Cloud':
-            return render_template("result.html", result='cloud.jpg', dimensions=pp.getImageDimensions('hedgehog.jpeg') )
+            return render_template("result.html", result='cloud.jpg', dimensions=pp.getImageDimensions('cloud.jpg') )
         else:
             pass  # unknown
     elif request.method == 'GET':

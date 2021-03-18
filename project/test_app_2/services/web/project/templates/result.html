@@ -11,4 +11,5 @@
     <img src="{{ url_for('static', filename=result) }}" style="width: 600px;">
 </div>
 
-<p>OpenCV says this image's dimensions are: {{ dimensions }} </p>
+<p>This image was grabbed using a Flask POST</p>
+<p>OpenCV was given the filepath, and ran a quick analysis. It says this image's dimensions are: {{ dimensions }} </p>
