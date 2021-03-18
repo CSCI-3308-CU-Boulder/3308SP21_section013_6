@@ -48,9 +48,19 @@ def test():
 def result():
     if request.method == 'POST':
         if request.form['submit_button'] == 'Hedgehog':
-            return render_template( "result.html", result='hedgehog.jpeg', dimensions=pp.getImageDimensions('hedgehog.jpeg') )
+            pp.colorMark('hedgehog', '.jpeg')
+            return render_template( "result.html",
+                                    image='hedgehog.jpeg',
+                                    dimensions=pp.getImageDimensions('hedgehog.jpeg'),
+                                    markedImage='hedgehogMarked.jpeg'
+                                    )
         elif request.form['submit_button'] == 'Cloud':
-            return render_template("result.html", result='cloud.jpg', dimensions=pp.getImageDimensions('cloud.jpg') )
+            pp.colorMark('cloud', '.jpg')
+            return render_template( "result.html",
+                                   image='cloud.jpg',
+                                   dimensions=pp.getImageDimensions('cloud.jpg'),
+                                   markedImage='cloudMarked.jpg'
+                                   )
         else:
             pass  # unknown
     elif request.method == 'GET':
