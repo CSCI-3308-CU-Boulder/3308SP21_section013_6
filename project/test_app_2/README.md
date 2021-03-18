@@ -1,3 +1,6 @@
+##FUN FACT:
+Flask is smart: _Just_ saving the __init__.py file will tell it to rebuild the webapp. No nead to rebuild/restart the container. Neat!
+
 ###Build container and spin up the two containers after changes with:
     $ docker-compose up -d --build
 
