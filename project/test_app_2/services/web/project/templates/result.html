@@ -1,8 +1,14 @@
 <!doctype html>
 
-<img src="{{ url_for('static', filename=result) }}" align="middle" />
 
 <p> {{ result }} </p>
 <form action = "http://localhost:5000/test">
     <p><input type = "submit" value = "Back to Test Page" /></p>
 </form>
+
+
+<div class="card">
+    <img src="{{ url_for('static', filename=result) }}" style="width: 600px;">
+</div>
+
+<p>OpenCV says this image's dimensions are: {{ dimensions }} </p>
