@@ -14,12 +14,17 @@ services:
       - db
   db:
     image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: hello_flask
+      POSTGRES_PASSWORD: hello_flask
+      POSTGRES_DB: hello_flask_dev
+    ports:
+      - "5432:5432" 
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=hello_flask
-      - POSTGRES_PASSWORD=hello_flask
-      - POSTGRES_DB=hello_flask_dev
+      - ./init_data:/docker-entrypoint-initdb.d # Binds ./init_data to docker-entrypoint-initdb.d.
+                                                #   The postgres image will run any files in this directory on startup
+
 
 volumes:
   postgres_data:
