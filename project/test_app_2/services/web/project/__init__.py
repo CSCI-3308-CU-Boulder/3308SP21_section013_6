@@ -48,18 +48,18 @@ def test():
 def result():
     if request.method == 'POST':
         if request.form['submit_button'] == 'Hedgehog':
-            pp.colorMark('hedgehog', '.jpeg')
-            return render_template( "result.html",
-                                    image='hedgehog.jpeg',
-                                    dimensions=pp.getImageDimensions('hedgehog.jpeg'),
-                                    markedImage='hedgehogMarked.jpeg'
+            filename = pp.colorMark('hedgehog', '.jpeg')
+            return render_template(     "result.html",
+                                        image='hedgehog.jpeg',
+                                        dimensions=pp.getImageDimensions('hedgehog.jpeg'),
+                                        markedImage=filename
                                     )
         elif request.form['submit_button'] == 'Cloud':
-            pp.colorMark('cloud', '.jpg')
-            return render_template( "result.html",
-                                   image='cloud.jpg',
-                                   dimensions=pp.getImageDimensions('cloud.jpg'),
-                                   markedImage='cloudMarked.jpg'
+            filename = pp.colorMark('cloud', '.jpg')
+            return render_template(     "result.html",
+                                        image='cloud.jpg',
+                                        dimensions=pp.getImageDimensions('cloud.jpg'),
+                                        markedImage=filename
                                    )
         else:
             pass  # unknown

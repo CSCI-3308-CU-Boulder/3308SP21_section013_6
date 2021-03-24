@@ -22,6 +22,8 @@ from tones.mixer import Mixer
 import wave
 from playsound import playsound
 import logging
+import uuid
+
 
 LOG_LEVEL = logging.DEBUG
 LOGFORMAT = "  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
@@ -122,6 +124,17 @@ def __VAR__(full_mat):
     var = []
 
 
+# returns ratio of color for each chanel
+def getColorAmount(mat):
+    rats = [0,0,0]
+    w, h = __getImageDimensions__(mat)
+    for row in mat:
+        for p in row:
+            for chanIndex in range(3):
+                rats[chanIndex] += p[chanIndex]
+    for ratIndex in range(3):
+        rats[ratIndex] = rats[ratIndex]/(255 * w * h)
+    return rats
 
 
 # params: ( image pixel matrix )
@@ -136,7 +149,7 @@ def __COM__(full_mat):
 
 
     for channel in range(getChannels(full_mat)):
-        log.debug("Performing center of mass function on color channel {}...".format(channel))
+        # log.debug("Performing center of mass function on color channel {}...".format(channel))
 
         mat = channels[channel]
 
@@ -170,24 +183,19 @@ def __getImageDimensions__(mat):
 # for front-end
 # takes filepath, returns w, h, or None if no image found
 def getImageDimensions(filepath):
-    print(filepath)
     mat = cv2.imread("project/static/" + filepath)
     if mat is None:
         return (0, 0)
     else:
         w = len(mat[0])
         h = len(mat)
-        print(w)
-        print(h)
         return (w, h)
 
 # General-use funtion for determining if something is an image
 def isImage(filename):
-    print(filename)
     mat = cv2.imread("project/static/" + filename)
     if mat is None:
         sys.exit("Must be an image.")
-        return (0, 0)
     else:
         return mat
 
@@ -300,17 +308,27 @@ def colorMark(filename, extension):
     mat = isImage(filename + extension)
 
     circles = __COM__(mat)
+    rats = getColorAmount(mat)
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 
+    log.debug(rats)
+
     w, h = __getImageDimensions__(mat)
-    for circle in range(getChannels(mat)):
+    for chan in range(3):
         mat = cv2.circle(
-            mat, (circles[circle][0], circles[circle][1]),
-            int(w / 8),
-            colors[circle],
+            mat, (circles[chan][0], circles[chan][1]),
+            int(w * rats[chan] * 0.25),
+            colors[chan],
             int(w / 150))
 
-    cv2.imwrite('project/static/' + filename + 'Marked' + extension, mat)
+    imgId = str(uuid.uuid4())
+
+    readFilename = 'uuids/' + imgId + 'Marked' + extension
+    writeFilename =  'project/static/' + readFilename
+    log.debug(writeFilename)
+    cv2.imwrite(writeFilename, mat)
+
+    return readFilename
 
 
 def main():
