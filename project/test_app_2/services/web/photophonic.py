@@ -323,7 +323,7 @@ def colorMark(filename, extension):
 
     imgId = str(uuid.uuid4())
 
-    readFilename = 'uuids/' + imgId + 'Marked' + extension
+    readFilename = 'uuids/' + imgId + extension
     writeFilename =  'project/static/' + readFilename
     log.debug(writeFilename)
     cv2.imwrite(writeFilename, mat)
