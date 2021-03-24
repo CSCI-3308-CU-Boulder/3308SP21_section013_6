@@ -8,9 +8,12 @@ CREATE TABLE IF NOT EXISTS users (
 
 DROP TABLE IF EXISTS images CASCADE;
 CREATE TABLE IF NOT EXISTS images (
-  user_id PRIMARY KEY REFERENCES users (user_id),
+  user_id SERIAL PRIMARY KEY,
   image_array INT[]
  );
 
 INSERT INTO users(user_name, password)
 VALUES ('testuser', 'pass');
+
+INSERT INTO images(image_array)
+VALUES (ARRAY [1,0,1,0]);
