@@ -23,20 +23,19 @@
 			<input type="password" id="inputPassword" class="form-control" placeholder="Password" name="password" value="{{request.form.password}}" required>
 
 			<div class="checkbox mb-3">
-				<label>
-				  <input type="checkbox" value="remember-me"> Remember me |
-				</label>
 					<a href="">Forgot Password?</a>
 			</div>
 			<button class="btn btn-lg btn-primary" type="submit">Sign in</button>
-				<hr>
+			<br>
+			{% if error %}
+        		<p class="error" style="color:red"><strong>Error:</strong> {{ error }}
+    		{% endif %}
+    						<hr>
 			<div>
 				<a href="{{ url_for('account_reg') }}">Register for a New Account</a>
 			</div>
 		</form>
-		{% if error %}
-        	<p class="error"><strong>Error:</strong> {{ error }}
-    	{% endif %}
+
 	</div>
 
 	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
