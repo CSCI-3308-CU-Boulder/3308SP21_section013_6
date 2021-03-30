@@ -13,10 +13,11 @@
 <body>
 
 	{% include "header.html" %}
-
+	<br> <br> <br>
 	<div class="center text-center mb-3">
 		<form class="form-signin" style="margin-left: 30vw; margin-right: 30vw;" method="post">
 			<h1 class="h3 mb-3 font-weight-normal">Login to PhotoPhonic</h1>
+			<br>
 			<label for="inputUser" class="sr-only">Username</label>
 			<input id="inputUser" class="form-control" placeholder="Username" name="username" value="{{request.form.username}}" required autofocus>
 			<label for="inputPassword" class="sr-only">Password</label>
@@ -26,7 +27,7 @@
 					<a href="">Forgot Password?</a>
 			</div>
 			<button class="btn btn-lg btn-primary" type="submit">Sign in</button>
-			<br>
+			<br> <br>
 			{% if error %}
         		<p class="error" style="color:red"><strong>Error:</strong> {{ error }}
     		{% endif %}
