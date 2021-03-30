@@ -11,7 +11,6 @@ app.config.from_object("project.config.Config")
 db = SQLAlchemy(app)
 dropzone = Dropzone(app)
 
-app.config['DROPZONE_MAX_FILES'] = 1
 
 class User(db.Model):
     __tablename__ = "users"
@@ -23,43 +22,41 @@ class User(db.Model):
     def __init__(self, email):
         self.email = email
 
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+basedir = os.path.abspath(os.path.dirname(__file__)) # get base directory for dropbox reference
+
+app.config.update( # dropbox config
+    UPLOADED_PATH=os.path.join(basedir, 'static/uuids'),
+    # Flask-Dropzone config:
+    DROPZONE_ALLOWED_FILE_TYPE='image',
+    DROPZONE_MAX_FILE_SIZE=3,
+    DROPZONE_MAX_FILES=1,
+    ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
+)
 
 
-UPLOAD_FOLDER = '/project/static/uuids/'
-ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
-app.config['SECRET_KEY'] = 'something only you know'
-
-
-@app.route("/")
+@app.route('/', methods=['POST', 'GET'])
 def home():
-    return render_template("home.html")
-
-@app.route("/upload/", methods=['POST'], endpoint='upload_file')
-def upload():
     if request.method == 'POST':
-        if request.form['button'] == 'upload':
-            print("[INFO]: Request got!")
 
-            # Checks if file is empty (page was loaded without one)
-            if 'file' not in request.files:
-                flash('No file part')
-                return render_template("home.html")
-            file = request.files['file']
-            # if user does not select file, browser also
-            # submit a empty part without filename
-            if file.filename == '':
-                flash('No selected file')
-                return render_template("home.html")
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                print('file uploaded successfully')
+        f = request.files.get('file')
+
+        if f != None:
+            print("[INFO]: Filename: ", f)
+            file_path = os.path.join(app.config['UPLOADED_PATH'], f.filename)
+            print("[INFO]: Path: ", file_path)
+            f.save(file_path)
+            image_id = pp.toUUID(file_path) # converts the file to a UUID name, then returns that ID
+            os.remove(file_path) # delete the uploaded file (it's been renamed to a uuid)
+
+            print("[INFO]: Image UUID is: " + image_id) # IMAGE IS NOW LOADED ON SERVER
+
+            # ADD IMAGE ID (UUID), IMAGE DATA, AND USER SIGNATURE TO DB HERE
+
         else:
-            print("[INFO]: DEAD BUTTON!")
-            return render_template("home.html")
+            print("[INFO]: NULL BUTTON")
+
+    return render_template("home.html")
 
 
 @app.route("/login")

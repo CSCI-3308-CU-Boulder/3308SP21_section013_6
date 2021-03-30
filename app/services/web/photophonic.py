@@ -23,6 +23,7 @@ import wave
 from playsound import playsound
 import logging
 import uuid
+import os
 
 
 LOG_LEVEL = logging.DEBUG
@@ -331,6 +332,19 @@ def colorMark(filename, extension):
     print(cv2.imread(readFilename))
 
     return readFilename
+
+def toUUID(filename):
+    file_path = os.path.join('uuids/', filename)
+    img = cv2.imread(file_path)
+
+    imgId = str(uuid.uuid4())
+    extension = filename.split('.')[1] # split the filename, then get the extension after the dot
+    idFilename = 'project/static/uuids/' + imgId + '.' + extension
+
+    log.debug("Writing to: " + idFilename)
+    cv2.imwrite(idFilename, img)
+
+    return idFilename
 
 
 def main():
