@@ -344,7 +344,7 @@ def toUUID(filename):
     log.debug("Writing to: " + idFilename)
     cv2.imwrite(idFilename, img)
 
-    return idFilename
+    return imgId
 
 
 def main():
