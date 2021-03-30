@@ -15,12 +15,12 @@
 	{% include "header.html" %}
 
 	<div class="center text-center mb-3">
-		<form class="form-signin" style="margin-left: 30vw; margin-right: 30vw;">
+		<form class="form-signin" style="margin-left: 30vw; margin-right: 30vw;" method="post">
 			<h1 class="h3 mb-3 font-weight-normal">Login to PhotoPhonic</h1>
 			<label for="inputUser" class="sr-only">Username</label>
-			<input id="inputUser" class="form-control" placeholder="Username" required autofocus>
+			<input id="inputUser" class="form-control" placeholder="Username" name="username" value="{{request.form.username}}" required autofocus>
 			<label for="inputPassword" class="sr-only">Password</label>
-			<input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+			<input type="password" id="inputPassword" class="form-control" placeholder="Password" name="password" value="{{request.form.password}}" required>
 
 			<div class="checkbox mb-3">
 				<label>
@@ -34,6 +34,9 @@
 				<a href="{{ url_for('account_reg') }}">Register for a New Account</a>
 			</div>
 		</form>
+		{% if error %}
+        	<p class="error"><strong>Error:</strong> {{ error }}
+    	{% endif %}
 	</div>
 
 	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
