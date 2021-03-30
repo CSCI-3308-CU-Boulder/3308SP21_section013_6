@@ -46,14 +46,19 @@
 
             </div>
             <div class="col">
+
                 <div class="card text-center">
                     <div class="card-header"></div>
                     <div class="card-body card1">
                         <h5 class="card-title">Playback</h5>
-                        <button href="#" class="btn btn-dark blockyButton">Play</button>
-                        <button href="#" class="btn btn-dark blockyButton">Pause</button>
+                        <audio controls>
+                            <source src="{{ url_for('static', filename='NGGYU.mp3') }}" type="audio/mpeg">
+                        </audio>
+<!--                        <button href="#" class="btn btn-dark blockyButton">Play</button>-->
+<!--                        <button href="#" class="btn btn-dark blockyButton">Pause</button>-->
                     </div>
                 </div>
+
             </div>
         </div>
         <div class="row">
