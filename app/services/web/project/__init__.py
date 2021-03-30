@@ -11,6 +11,8 @@ app.config.from_object("project.config.Config")
 db = SQLAlchemy(app)
 dropzone = Dropzone(app)
 
+app.config['DROPZONE_MAX_FILES'] = 1
+
 class User(db.Model):
     __tablename__ = "users"
 
