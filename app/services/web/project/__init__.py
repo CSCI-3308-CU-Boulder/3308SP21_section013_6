@@ -73,9 +73,16 @@ def login():
     return render_template("login.html", error=error)
 
 
-@app.route("/account_reg")
+@app.route("/account_reg", methods = ['GET'])
 def account_reg():
     return render_template("account_reg.html")
+def user_records():
+    newUsername = request.args.get('username')
+    newEmail = request.args.get('email')
+    newPassword = request.args.get('pwd')
+    if(newUsername and newEmail and newPassword):
+        # Add three items to users DB... somehow lol...
+        print(newUsername)
 
 
 @app.route("/creations")
