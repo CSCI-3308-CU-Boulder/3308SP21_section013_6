@@ -7,11 +7,13 @@ h1{
 	font-size: 24pt;
 	color: black;
 }
-p{
-	margin-left: 20%;
-	margin-right: 10%
+.my-container{
+	align-content: auto;
 }
-.blockyButton{
+.my-row{
+	align-items: auto;
+}
+.my-button{
 	width: 150px;
 	height: 50px;
 }

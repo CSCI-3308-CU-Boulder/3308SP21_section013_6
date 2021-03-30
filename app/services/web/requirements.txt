@@ -5,3 +5,4 @@ tones==1.2.0
 playsound==1.2.2
 colorlog==4.7.2
 Jinja2==2.11.3
+flask-dropzone==1.5.4
