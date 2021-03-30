@@ -347,17 +347,16 @@ def toUUID(filename):
     return imgId
 
 
-def main():
-    # img = [ [name, path, pixelData], ... ]
+def writeAudio(imageID, filepath):
+    img = [imageID, filepath]
     log.info("Reading image...")
-    isImage = cv2.imread(img[1])
-    img.append(isImage)
+    img.append( cv2.imread(img[1]) )
 
     try:
-        isImage = img[2][0][0]  # test to get first pixel value
+        img[2][0][0]  # test to get first pixel value
     except TypeError:
-        log.error("Inputted path must be an image. ")
-        log.debug("Check file names and extensions in image_pool to ensure they match the image (explicitly write out the file extension).")
+        log.error("Inputted path ({}) must be an image".format(filepath))
+        log.error("Check file names and extensions in image_pool to ensure they match the image (explicitly write out the file extension).")
         sys.exit()
 
     width, height = __getImageDimensions__(img[2])
@@ -408,40 +407,3 @@ def main():
             initColorSynth(i - 1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
 
     mixer.write_wav('audio.wav')
-    samples = mixer.mix()
-
-    log.info("Interpretation playing back now...")
-    playsound('audio.wav')
-
-    # wave module method for playing audio file
-    # Set chunk size of 1024 samples per data frame
-    # chunk = 1024
-    # wf = wave.open('audio.wav', 'rb')
-    # p = pyaudio.PyAudio()
-    #
-    # # Open a .Stream object to write the WAV file to
-    # stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
-    #                 channels = wf.getnchannels(),
-    #                 rate = wf.getframerate(),
-    #                 output = True) # indicates playback as opposed to recording
-    #
-    # data = wf.readframes(chunk)
-    # while data != '':
-    #     stream.write(data)
-    #     data = wf.readframes(chunk)
-    #
-    # stream.close()
-    # p.terminate()
-
-    # ----------------< IMAGE MANAGEMENT >----------------#
-
-    if TOGGLE_SHOW_IMAGE:
-        log.info("Image(s) being displayed")
-        cv2.imshow(img[0], img[2])
-
-        cv2.imshow('B-RGB', __STRIP_INPLACE__(img[2], 0))
-        cv2.imshow('G-RGB', __STRIP_INPLACE__(img[2], 1))
-        cv2.imshow('R-RGB', __STRIP_INPLACE__(img[2], 2))
-
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()

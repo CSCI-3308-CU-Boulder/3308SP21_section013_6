@@ -34,7 +34,7 @@ app.config.update( # dropbox config
     DROPZONE_UPLOAD_MULTIPLE=0,
     ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg']),
     DROPZONE_REDIRECT_VIEW='home',
-    DROPZONE_DEFAULT_MESSAGE='<button type="file" href="#" class="btn btn-dark blockyButton" />Upload an Image!</button>'
+    DROPZONE_DEFAULT_MESSAGE='<p class="btn btn-dark blockyButton" />Upload an Image!</p>'
 )
 
 
