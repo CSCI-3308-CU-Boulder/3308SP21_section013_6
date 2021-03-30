@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 DROP TABLE IF EXISTS images CASCADE;
 CREATE TABLE IF NOT EXISTS images (
-  user_id SERIAL PRIMARY KEY,
+  user_id INT PRIMARY KEY,
+  image_id VARCHAR(30) NOT NULL,
   image_array INT[]
  );
 
