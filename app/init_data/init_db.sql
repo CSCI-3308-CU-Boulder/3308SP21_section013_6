@@ -16,5 +16,5 @@ CREATE TABLE IF NOT EXISTS images (
 INSERT INTO users(user_name, password)
 VALUES ('testuser', 'pass');
 
-INSERT INTO images(image_array)
-VALUES (ARRAY [1,0,1,0]);
+INSERT INTO images(user_id, image_id, image_array)
+VALUES (1, 'test' ,ARRAY [1,0,1,0]);
