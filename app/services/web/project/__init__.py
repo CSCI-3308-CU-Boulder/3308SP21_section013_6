@@ -40,6 +40,9 @@ app.config.update( # dropbox config
 
 @app.route('/', methods=['POST', 'GET'])
 def home():
+
+    audioFile = 'NGGYU.mp3' # default audioFile
+
     if request.method == 'POST':
 
         f = request.files.get('file')
@@ -54,12 +57,16 @@ def home():
 
             print("[INFO]: Image UUID is: " + image_id) # IMAGE IS NOW LOADED ON SERVER
 
+            # Generate Audio
+            pp.writeAudio(image_id, file_path)
+
             # ADD IMAGE ID (UUID), IMAGE DATA, AND USER SIGNATURE TO DB HERE
 
         else:
             print("[INFO]: NULL BUTTON")
 
-    return render_template("home.html")
+    return render_template("home.html", audioFile=audioFile)
+
 
 
 @app.route("/login", methods=['GET', 'POST'])
@@ -116,3 +123,4 @@ def result():
             pass  # unknown
     elif request.method == 'GET':
         return render_template('result.html')
+
