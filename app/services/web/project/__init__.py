@@ -8,19 +8,21 @@ import photophonic as pp # main audio generation and image processing definition
 
 app = Flask(__name__)
 app.config.from_object("project.config.Config")
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://hello_flask:hello_flask@db:5432/hello_flask_dev"
 db = SQLAlchemy(app)
 dropzone = Dropzone(app)
 
+# test1 = db.Table('users', db.metadata, autoload=True, autoload_with=db.engine)
 
-class User(db.Model):
-    __tablename__ = "users"
+# class User(db.Model):
+#     __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(128), unique=True, nullable=False)
-    active = db.Column(db.Boolean(), default=True, nullable=False)
+#     id = db.Column(db.Integer, primary_key=True)
+#     email = db.Column(db.String(128), unique=True, nullable=False)
+#     active = db.Column(db.Boolean(), default=True, nullable=False)
 
-    def __init__(self, email):
-        self.email = email
+#     def __init__(self, email):
+#         self.email = email
 
 
 basedir = os.path.abspath(os.path.dirname(__file__)) # get base directory for dropbox reference
@@ -65,6 +67,8 @@ def home():
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     error = None
+    # results = db.session.query(test1).all()
+    error = results
     if request.method == 'POST':
         if request.form['username'] != 'admin' or request.form['password'] != 'admin':
             error = 'Invalid Credentials. Please try again.'
