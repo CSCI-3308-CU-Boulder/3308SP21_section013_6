@@ -75,7 +75,7 @@ def home():
 def login():
     error = None
     # results = db.session.query(test1).all()
-    error = results
+    # error = results
     if request.method == 'POST':
         if request.form['username'] != 'admin' or request.form['password'] != 'admin':
             error = 'Invalid Credentials. Please try again.'
