@@ -289,7 +289,7 @@ def analyze_image(name, image, path):
 #----------------< AUDIO GENERATION DEFINITIONS >----------------#
 
 
-def initColorSynth( iden, analysis, color, synth, attack=1, decay=1, v_f=0, v_v=0, octave=4, pitch_1='c' ):
+def initColorSynth(mixer, iden, analysis, color, synth, attack=1, decay=1, v_f=0, v_v=0, octave=4, pitch_1='c' ):
 
     if TOGGLE_ANALYSIS:
         print(color + " tones being generated...")
@@ -339,23 +339,34 @@ def toUUID(filename):
 
     imgId = str(uuid.uuid4())
     extension = filename.split('.')[1] # split the filename, then get the extension after the dot
-    idFilename = 'project/static/uuids/' + imgId + '.' + extension
+    imgName = imgId + '.' + extension
+    idFilename = 'project/static/uuids/' + imgName
 
     log.debug("Writing to: " + idFilename)
     cv2.imwrite(idFilename, img)
 
-    return imgId
+    return imgId, imgName
 
+def makeUUID(f, uploadPath):
+    file_path = os.path.join(uploadPath, f.filename)
+    f.save(file_path)
+    image_info = toUUID(file_path)
+    os.remove(file_path)
+    image_id = image_info[0]
+    writeAudio(image_id, image_info[1], uploadPath)
+    return image_id
 
-def writeAudio(imageID, filepath):
-    img = [imageID, filepath]
+def writeAudio(imageID, filename, path):
+    img = [imageID, filename]
     log.info("Reading image...")
-    img.append( cv2.imread(img[1]) )
+
+    file_path = os.path.join( path, filename )
+    img.append( cv2.imread(file_path) )
 
     try:
         img[2][0][0]  # test to get first pixel value
     except TypeError:
-        log.error("Inputted path ({}) must be an image".format(filepath))
+        log.error("Inputted path ({}) must be an image".format(filename))
         log.error("Check file names and extensions in image_pool to ensure they match the image (explicitly write out the file extension).")
         sys.exit()
 
@@ -398,12 +409,14 @@ def writeAudio(imageID, filepath):
     if isgray(img[2]):  # only get value synth
         rs = colorSynths[3]
         anal = imgAnal[0]
-        initColorSynth(0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
+        initColorSynth(mixer, 0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
 
     else:  # get all color synths
         for i in range(4):
             rs = colorSynths[i]
             anal = imgAnal[i]
-            initColorSynth(i - 1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
+            initColorSynth(mixer, i - 1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
 
-    mixer.write_wav('audio.wav')
+    mixer.write_wav(path + '/' + imageID + '.wav')
+
+    return imageID + '.wav'

@@ -30,15 +30,16 @@
 <!--                            <input type="file" id="input-file-now-custom-1" class="file-upload" data-default-file="https://mdbootstrap.com/img/Photos/Others/images/89.jpg" />-->
 <!--                        </div>-->
 
-                        {{ dropzone.create(action='home') }}
+                        {{ dropzone.create(action='upload') }}
                         {{ dropzone.style('border: 2px dashed #0087F7; min-height: 22vw;') }}
 
 <!--                    TODO: Check that uploadedFIle bit in the middle    -->
 
-                        <form href="upload" method="post" class="mt-3">
-<!--                            Upload button moved to __init__.py, for dropzone configuration-->
-<!--                            <button type="file" href="#" class="btn btn-dark blockyButton" style="margin-top: 30vw;" />Upload</button>-->
-                            <button href="#" name="button" class="btn btn-dark blockyButton" value="stock">Pick a Random Image</button>
+                        <form action = "http://localhost:5000/upload" method = "POST" enctype = "multipart/form-data" class="mt-3">
+<!--                            <button href="{{ url_for('home', uuid=uuid) }}" class="btn btn-dark blockyButton" />Upload</button>-->
+<!--                            <button href="#" name="button" class="btn btn-dark blockyButton" value="stock">Pick a Random Image</button>-->
+                            <input type = "file" name = "file" class="btn btn-dark blockyButton" />
+                            <input type = "submit" class="btn btn-dark blockyButton" />
                         </form>
 
                     </div>
@@ -52,9 +53,9 @@
                     <div class="card-body card1">
                         <h5 class="card-title">Playback:</h5>
                         <br/>
-                        <h5 style="margin-top: 0.5%">{{ audioFile }}</h5>
+                        <h5 style="margin-top: 0.5%">{{ uuid }}</h5>
                         <audio controls>
-                            <source src="{{ url_for('static', filename=audioFile) }}" type="audio/mpeg">
+                            <source src="{{ url_for('static', filename='uuids/' + uuid + '.wav') }}" type="audio/mpeg">
                         </audio>
 <!--                        <button href="#" class="btn btn-dark blockyButton">Play</button>-->
 <!--                        <button href="#" class="btn btn-dark blockyButton">Pause</button>-->

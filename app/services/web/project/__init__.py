@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request, redirect, flash
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 import os
@@ -16,11 +16,9 @@ dropzone = Dropzone(app)
 
 # class User(db.Model):
 #     __tablename__ = "users"
-
 #     id = db.Column(db.Integer, primary_key=True)
 #     email = db.Column(db.String(128), unique=True, nullable=False)
 #     active = db.Column(db.Boolean(), default=True, nullable=False)
-
 #     def __init__(self, email):
 #         self.email = email
 
@@ -34,40 +32,40 @@ app.config.update( # dropbox config
     DROPZONE_MAX_FILE_SIZE=3,
     DROPZONE_MAX_FILES=1,
     DROPZONE_UPLOAD_MULTIPLE=0,
-    ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg']),
-    DROPZONE_REDIRECT_VIEW='home',
-    DROPZONE_DEFAULT_MESSAGE='<p class="btn btn-dark blockyButton" />Upload an Image!</p>'
+    ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
+    # DROPZONE_REDIRECT_VIEW=upload
+    # DROPZONE_DEFAULT_MESSAGE='<p class="btn btn-dark blockyButton" />Upload an Image!</p>'
 )
+app.config["DEBUG"] = True
 
 
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/', methods = ['GET'])
 def home():
 
-    audioFile = 'NGGYU.mp3' # default audioFile
+    key='NGGYU' # default uuid
 
-    if request.method == 'POST':
+    if request.args:
+        key=request.args.get('uuid')
+
+    print(key)
+    return render_template("home.html", uuid=key)
+
+
+@app.route('/upload', methods = ['POST'])
+def upload():
+    if request.method == 'POST':  # upload the image
+        print("POST")
 
         f = request.files.get('file')
-
         if f != None:
-            print("[INFO]: Filename: ", f)
-            file_path = os.path.join(app.config['UPLOADED_PATH'], f.filename)
-            print("[INFO]: Path: ", file_path)
-            f.save(file_path)
-            image_id = pp.toUUID(file_path) # converts the file to a UUID name, then returns that ID
-            os.remove(file_path) # delete the uploaded file (it's been renamed to a uuid)
+            image_id = pp.makeUUID(f, app.config['UPLOADED_PATH'])  # turns image into uuid-named image and audio files
 
-            print("[INFO]: Image UUID is: " + image_id) # IMAGE IS NOW LOADED ON SERVER
+            print("Redirecting to play at: {}".format(image_id))
+            return redirect(url_for('home', uuid=image_id))
 
-            # Generate Audio
-            pp.writeAudio(image_id, file_path)
 
-            # ADD IMAGE ID (UUID), IMAGE DATA, AND USER SIGNATURE TO DB HERE
 
-        else:
-            print("[INFO]: NULL BUTTON")
 
-    return render_template("home.html", audioFile=audioFile)
 
 
 
