@@ -17,7 +17,13 @@ h1{
 	width: 150px;
 	height: 50px;
 }
-.card1{
-	height:auto;
+.slickCard {
+	height: auto;
 	align-self: stretch;
+	opacity: 0.33;
+}
+.centerVert{
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
 }

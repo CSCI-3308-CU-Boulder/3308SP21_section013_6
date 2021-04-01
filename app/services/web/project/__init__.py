@@ -41,26 +41,19 @@ app.config["DEBUG"] = True
 
 @app.route('/', methods = ['GET'])
 def home():
-
-    key='NGGYU' # default uuid
-
-    if request.args:
+    key='NGGYU' # default audio uuid
+    if request.args: # if a uuid has been supplied
         key=request.args.get('uuid')
-
-    print(key)
     return render_template("home.html", uuid=key)
 
 
 @app.route('/upload', methods = ['POST'])
 def upload():
-    if request.method == 'POST':  # upload the image
-        print("POST")
-
+    if request.method == 'POST':
         f = request.files.get('file')
         if f != None:
-            image_id = pp.makeUUID(f, app.config['UPLOADED_PATH'])  # turns image into uuid-named image and audio files
-
-            print("Redirecting to play at: {}".format(image_id))
+            # pp.makeUUID() turns image into uuid-named image and audio files
+            image_id = pp.makeUUID(f, app.config['UPLOADED_PATH'])
             return redirect(url_for('home', uuid=image_id))
 
 
