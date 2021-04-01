@@ -19,8 +19,6 @@ import numpy as np
 import cv2
 from tones import SINE_WAVE, SAWTOOTH_WAVE, TRIANGLE_WAVE, SQUARE_WAVE
 from tones.mixer import Mixer
-import wave
-from playsound import playsound
 import logging
 import uuid
 import os
@@ -43,7 +41,6 @@ log.addHandler(stream)
 
 
 # toggle whether the image should be displayed to the screen
-TOGGLE_SHOW_IMAGE = 1
 TOGGLE_DRAW = 1
 TOGGLE_ANALYSIS = 0
 
@@ -52,24 +49,6 @@ TOGGLE_MAKE_AUDIO = 1
 volume = 0.4
 duration = 5
 
-# select which image, of those listed below, to select
-image_selected = 1
-
-
-# format of images in this list is:
-# [ [name, path], ... ]
-image_pool =   [
-                ['hedgehog', 'hedgehog.jpeg'],
-                ['fabio', 'fabio.jpg'],
-                ['lenna', 'lenna.png']
-                                       ]
-
-img = image_pool[image_selected - 1]
-
-# append testImages dir to paths
-path = "testImages/"
-for image in image_pool:
-    image[1] = path + image[1]
 
 # [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
 colorSynths = [
@@ -80,12 +59,6 @@ colorSynths = [
     [ 'alpha', SAWTOOTH_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'bb'],
     ]
 
-
-# log.debug("A quirky message only developers care about")
-# log.info("Curious users might want to know this")
-# log.warn("Something is wrong and any user should be informed")
-# log.error("Serious stuff, this is red for a reason")
-# log.critical("OH NO everything is on fire")
 
 #----------------< IMAGE PROCESSING DEFINITIONS >----------------#
 
@@ -301,7 +274,8 @@ def initColorSynth(mixer, iden, analysis, color, synth, attack=1, decay=1, v_f=0
     mixer.add_note(iden, note=pitch_1, octave=octave, duration=duration, amplitude=presence)
 
 
-#----------------< IMAGE PROCESSING >----------------#
+#----------------< CALLED BY FRONT >----------------#
+
 
 
 def colorMark(filename, extension):
@@ -333,33 +307,24 @@ def colorMark(filename, extension):
 
     return readFilename
 
-def toUUID(filename):
-    file_path = os.path.join('uuids/', filename)
-    img = cv2.imread(file_path)
-
-    imgId = str(uuid.uuid4())
-    # extension = filename.split('.')[1] # split the filename, then get the extension after the dot
-    extension = "jpg"
-    imgName = imgId + '.' + extension
-    idFilename = 'project/static/uuids/' + imgName
-
-    log.debug("Writing to: " + idFilename)
-    cv2.imwrite(idFilename, img)
-
-    return imgId, imgName
-
 def makeUUID(f, uploadPath):
     file_path = os.path.join(uploadPath, f.filename)
     f.save(file_path)
-    image_info = toUUID(file_path)
+    image_mat = cv2.imread(file_path)
+
+    image_id = str(uuid.uuid4())
+    imgName = image_id + '.' + "jpg"
+    idFilename = 'project/static/uuids/' + imgName
+    log.debug("Writing image: " + idFilename)
+    cv2.imwrite(idFilename, image_mat)
+
     os.remove(file_path)
-    image_id = image_info[0]
-    img_mat = writeAudio(image_id, image_info[1], uploadPath)
-    return image_id, img_mat
+    writeAudio(image_id, imgName, uploadPath)
+    return image_id, image_mat
 
 def writeAudio(imageID, filename, path):
     img = [imageID, filename]
-    log.info("Reading image...")
+    log.debug("Reading image...")
 
     file_path = os.path.join( path, filename )
     img.append( cv2.imread(file_path) )
@@ -378,7 +343,7 @@ def writeAudio(imageID, filename, path):
         height = int(img[2].shape[0] * factor)
         dimensions = (width, height)
 
-        log.warning("Resized image {} for quicker analysis: {}, {}".format(img[1], width, height))
+        log.warning("Resized image {} ({}, {}) for quicker analysis".format(img[1], width, height))
         img[2] = cv2.resize(img[2], dimensions, interpolation=cv2.INTER_AREA)
         cv2.imwrite(img[1], img[2])
 
@@ -390,18 +355,7 @@ def writeAudio(imageID, filename, path):
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
     # print(circles)
 
-    if TOGGLE_SHOW_IMAGE and TOGGLE_DRAW:
-        w, h = __getImageDimensions__(img[2])
-        for circle in range(getChannels(img[2])):
-            image = cv2.circle(
-                img[2], (circles[circle][0], circles[circle][1]),
-                int(w / 8),
-                colors[circle],
-                int(w / 150))
-
-    # ----------------< AUDIO GEN/PLAYBACK >----------------#
-
-    log.info("Writing/playing audio...")
+    log.debug("Writing audio: {}/{}.wav".format(path, imageID))
     mixer = Mixer(44100, volume)
 
     # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
@@ -420,4 +374,4 @@ def writeAudio(imageID, filename, path):
 
     mixer.write_wav(path + '/' + imageID + '.wav')
 
-    return imageID + '.wav', img[2]
+    return imageID + '.wav'
