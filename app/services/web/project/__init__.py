@@ -2,7 +2,6 @@ from flask import Flask, jsonify, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 import os
-from flask_dropzone import Dropzone
 import photophonic as pp # main audio generation and image processing definitions
 
 
@@ -10,9 +9,6 @@ app = Flask(__name__)
 app.config.from_object("project.config.Config")
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://hello_flask:hello_flask@db:5432/hello_flask_dev"
 db = SQLAlchemy(app)
-dropzone = Dropzone(app)
-
-basedir = os.path.abspath(os.path.dirname(__file__)) # get base directory for dropbox reference
 app.config["DEBUG"] = True
 
 # test1 = db.Table('users', db.metadata, autoload=True, autoload_with=db.engine)
@@ -24,19 +20,6 @@ app.config["DEBUG"] = True
 #     active = db.Column(db.Boolean(), default=True, nullable=False)
 #     def __init__(self, email):
 #         self.email = email
-
-
-app.config.update( # dropbox config
-    UPLOADED_PATH=os.path.join(basedir, 'static/uuids'),
-    # Flask-Dropzone config:
-    DROPZONE_ALLOWED_FILE_TYPE='image',
-    DROPZONE_MAX_FILE_SIZE=3,
-    DROPZONE_MAX_FILES=1,
-    DROPZONE_UPLOAD_MULTIPLE=0,
-    ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
-    # DROPZONE_REDIRECT_VIEW=upload
-    # DROPZONE_DEFAULT_MESSAGE='<p class="btn btn-dark blockyButton" />Upload an Image!</p>'
-)
 
 
 @app.route('/', methods = ['GET'])
