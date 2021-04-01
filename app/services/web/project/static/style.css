@@ -7,6 +7,12 @@ h1{
 	font-size: 24pt;
 	color: black;
 }
+h5{
+	font-size: 24pt;
+	color: black;
+	font-weight: bold;
+
+}
 .my-container{
 	align-content: auto;
 }
@@ -20,7 +26,7 @@ h1{
 .slickCard {
 	height: auto;
 	align-self: stretch;
-	opacity: 0.33;
+	/*opacity: 0.33;*/
 }
 .centerVert{
 	position: absolute;

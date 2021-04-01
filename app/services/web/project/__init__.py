@@ -12,6 +12,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://hello_flask:hello_flask@db
 db = SQLAlchemy(app)
 dropzone = Dropzone(app)
 
+basedir = os.path.abspath(os.path.dirname(__file__)) # get base directory for dropbox reference
+app.config["DEBUG"] = True
+
 # test1 = db.Table('users', db.metadata, autoload=True, autoload_with=db.engine)
 
 # class User(db.Model):
@@ -22,8 +25,6 @@ dropzone = Dropzone(app)
 #     def __init__(self, email):
 #         self.email = email
 
-
-basedir = os.path.abspath(os.path.dirname(__file__)) # get base directory for dropbox reference
 
 app.config.update( # dropbox config
     UPLOADED_PATH=os.path.join(basedir, 'static/uuids'),
@@ -36,7 +37,6 @@ app.config.update( # dropbox config
     # DROPZONE_REDIRECT_VIEW=upload
     # DROPZONE_DEFAULT_MESSAGE='<p class="btn btn-dark blockyButton" />Upload an Image!</p>'
 )
-app.config["DEBUG"] = True
 
 
 @app.route('/', methods = ['GET'])
@@ -55,11 +55,6 @@ def upload():
             # pp.makeUUID() turns image into uuid-named image and audio files
             image_id = pp.makeUUID(f, app.config['UPLOADED_PATH'])
             return redirect(url_for('home', uuid=image_id))
-
-
-
-
-
 
 
 @app.route("/login", methods=['GET', 'POST'])

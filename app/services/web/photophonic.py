@@ -338,7 +338,8 @@ def toUUID(filename):
     img = cv2.imread(file_path)
 
     imgId = str(uuid.uuid4())
-    extension = filename.split('.')[1] # split the filename, then get the extension after the dot
+    # extension = filename.split('.')[1] # split the filename, then get the extension after the dot
+    extension = "jpg"
     imgName = imgId + '.' + extension
     idFilename = 'project/static/uuids/' + imgName
 
