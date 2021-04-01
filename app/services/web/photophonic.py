@@ -354,8 +354,8 @@ def makeUUID(f, uploadPath):
     image_info = toUUID(file_path)
     os.remove(file_path)
     image_id = image_info[0]
-    writeAudio(image_id, image_info[1], uploadPath)
-    return image_id
+    img_mat = writeAudio(image_id, image_info[1], uploadPath)
+    return image_id, img_mat
 
 def writeAudio(imageID, filename, path):
     img = [imageID, filename]
@@ -420,4 +420,4 @@ def writeAudio(imageID, filename, path):
 
     mixer.write_wav(path + '/' + imageID + '.wav')
 
-    return imageID + '.wav'
+    return imageID + '.wav', img[2]

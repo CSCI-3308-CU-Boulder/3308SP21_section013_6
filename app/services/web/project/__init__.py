@@ -9,7 +9,12 @@ app = Flask(__name__)
 app.config.from_object("project.config.Config")
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://hello_flask:hello_flask@db:5432/hello_flask_dev"
 db = SQLAlchemy(app)
-app.config["DEBUG"] = True
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config.update(
+    UPLOADED_PATH=os.path.join(basedir, 'static/uuids'),
+    DEBUG = True,
+    ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
+)
 
 # test1 = db.Table('users', db.metadata, autoload=True, autoload_with=db.engine)
 
@@ -24,10 +29,13 @@ app.config["DEBUG"] = True
 
 @app.route('/', methods = ['GET'])
 def home():
-    key='NGGYU' # default audio uuid
+
     if request.args: # if a uuid has been supplied
-        key=request.args.get('uuid')
-    return render_template("home.html", uuid=key)
+        uuid = request.args.get('uuid')
+
+    else:
+        uuid = 'NGGYU'  # default audio uuid
+    return render_template("home.html", uuid=uuid)
 
 
 @app.route('/upload', methods = ['POST'])
@@ -35,9 +43,28 @@ def upload():
     if request.method == 'POST':
         f = request.files.get('file')
         if f != None:
-            # pp.makeUUID() turns image into uuid-named image and audio files
-            image_id = pp.makeUUID(f, app.config['UPLOADED_PATH'])
+
+            image_id, image_matrix = pp.makeUUID(f, app.config['UPLOADED_PATH']) # turns image into uuid-named image and audio files
+
+            # -------------------------------------------------------------#
+            # Insert image to DB here!: (image_id, image_matrix, username)
+            #
+            # id            => uuid for image (universally unique identifier)
+            # image_matrix  => list containing pixel data
+            # username      => ...?
+            # -------------------------------------------------------------#
+
             return redirect(url_for('home', uuid=image_id))
+
+
+# @app.route('/load')
+# def load(): # point here when selecting an image in the user's gallery or the explore tab
+
+    # -----------------------------------------------------------------------------------------#
+    # 1) Load image with ID==UUID FROM DB (save image to server directory static/uuids/)
+    # 2) Get image matrix with DB call: "FROM images SELECT image_matrix WHERE ID = uuid"
+    # 3) Write image matrix to server with cv2.imwrite(image_matrix, PATH/uuid.jpg)
+    # -----------------------------------------------------------------------------------------#
 
 
 @app.route("/login", methods=['GET', 'POST'])
