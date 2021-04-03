@@ -40,12 +40,6 @@ log.addHandler(stream)
 #-----------< GLOBALS >-----------#
 
 
-# toggle whether the image should be displayed to the screen
-TOGGLE_DRAW = 1
-TOGGLE_ANALYSIS = 0
-
-# Toggle generation and playback of audio
-TOGGLE_MAKE_AUDIO = 1
 volume = 0.4
 duration = 5
 
@@ -199,13 +193,6 @@ def analyze_image(name, image, path):
         val_max = np.max(image)
         val_min = np.min(image)
         val_range = val_max - val_min
-
-        if TOGGLE_ANALYSIS:
-            print("\n----- Analyzing {} in grayscale -----".format(name))
-            print("Average value: {:.2f}".format(mean))
-            print("Max value: {:.2f}".format(val_max))
-            print("Min value: {:.2f}".format(val_min))
-            print("Range of value: {:.2f}\n".format(val_range))
         retStats.append([ 'gray', mean, val_range ])
     else:
         blue = []
@@ -221,39 +208,18 @@ def analyze_image(name, image, path):
                 red.append(pixel[2])
                 pixel_sums.append( ( (pixel[0]/3) + (pixel[1]/3) + (pixel[2]/3) ) )
 
-        if TOGGLE_ANALYSIS:
-            print("\n----- Analyzing {} in BGR color -----".format(name))
-
         for color in [ [blue, "blue"], [green, "green"], [red, "red"] ]:
             mean = np.mean(color[0])
             val_max = np.max(color[0])
             val_min = np.min(color[0])
             val_range = val_max - val_min
-            if TOGGLE_ANALYSIS:
-                print("Average {}: {:.2f}".format(color[1], mean))
-                print("Max {}: {:.2f}".format(color[1], val_max))
-                print("Min {}: {:.2f}".format(color[1], val_min))
-                print("Range {}: {:.2f}\n".format(color[1], val_range) )
-
             retStats.append([color[1], mean, val_range])
 
-
         avg_color = [np.sum(blue) / count, np.sum(green) / count, np.sum(red) / count]
-        if TOGGLE_ANALYSIS:
-            print("Average color value: [{:.2f}, {:.2f}, {:.2f}]".format(avg_color[0], avg_color[1], avg_color[2]))
-            print("Range of color: {:.2f}".format( (np.max(pixel_sums)-np.min(pixel_sums)) )) # (a ratio of difference between colors)
-
         mean = np.mean(image)
         val_max = np.max(image)
         val_min = np.min(image)
         val_range = val_max - val_min
-
-        if TOGGLE_ANALYSIS:
-            print("Average shade value: {:.2f}".format(mean))
-            print("Max shade value: {:.2f}".format(val_max))
-            print("Min shade value: {:.2f}".format(val_min))
-            print("Range of shade value: {:.2f}\n".format(val_range))
-
         retStats.append([ 'shade', mean, val_range ])
 
     return retStats
@@ -264,13 +230,11 @@ def analyze_image(name, image, path):
 
 def initColorSynth(mixer, iden, analysis, color, synth, attack=1, decay=1, v_f=0, v_v=0, octave=4, pitch_1='c' ):
 
-    if TOGGLE_ANALYSIS:
-        print(color + " tones being generated...")
-        print("Analysis...\n{}\n".format(analysis))
     mixer.create_track(iden, synth, vibrato_frequency=v_f, vibrato_variance=v_v, attack=attack, decay=decay)
 
     presence = analysis[1]/255  # calculates the presence of each color in an image
                                 # (normalize the mean to 0-1 to stuff into amplitude)
+
     mixer.add_note(iden, note=pitch_1, octave=octave, duration=duration, amplitude=presence)
 
 
@@ -349,11 +313,6 @@ def writeAudio(imageID, filename, path):
 
     # [ [channel attribute, mean, range, ...]
     # imgAnal = analyze_image(img[0], img[2], img[1])
-
-    circles = __COM__(img[2])
-
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
-    # print(circles)
 
     log.debug("Writing audio: {}/{}.wav".format(path, imageID))
     mixer = Mixer(44100, volume)
