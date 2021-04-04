@@ -52,17 +52,17 @@ notes = ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
 primary_pitchsets = { # general capture of image
 
     # if image has little difference in center of masses ('Bb' add#4 maj7)
-    "lonely": [ [0,4], [4,5], [12,4], [10, 4], [5, 4] ],
+    "lonely": [ [0,4], [4,5], [12,4], [10,4], [5,4] ],
 
     # if one color is more distant by a measurable margin (add69)
-    "powerful": [ [0,4], [7,4], [2,5], [9, 5], [4, 5] ],
+    "powerful": [ [0,3], [7,3], [2,4], [9,4], [4,4] ],
 
 }
 
 secondary_pitchsets = { # "bass notes", chosen based on further analysis of the image
-    "virtue": [ [2,2], [3, 11] ], # if green dominates by a measurable margin
-    "legacy": [ [2,2], [3, 9] ], # if red dominates
-    "passion": [ [2,2], [3, 8] ] # if red dominates
+    "legacy": [ [2,2], [9, 3] ], # if blue dominates by a measurable margin
+    "virtue": [ [2,2], [1, 3] ], # if green dominates
+    "passion": [ [2,2], [8, 3] ] # if red dominates
     # "legacy" # if orange dominates
 }
 
@@ -198,43 +198,36 @@ def isgray(image):
     if (b==g).all() and (b==r).all(): return True
     return False
 
-def analyze_image(name, image, path):
+def analyze_image(image):
 
     retStats = [] # return stats
+    blue = []
+    green = []
+    red = []
+    count = 0
+    pixel_sums = []
 
-    if isgray(image):
-        mean = np.mean(image)
-        val_max = np.max(image)
-        val_min = np.min(image)
+    for row in image:
+        for pixel in row:
+            count += 1
+            blue.append(pixel[0])
+            green.append(pixel[1])
+            red.append(pixel[2])
+            pixel_sums.append( ( (pixel[0]/3) + (pixel[1]/3) + (pixel[2]/3) ) )
+
+    for color in [ [blue, "blue"], [green, "green"], [red, "red"] ]:
+        mean = np.mean(color[0])
+        val_max = np.max(color[0])
+        val_min = np.min(color[0])
         val_range = val_max - val_min
-        retStats.append([ 'gray', mean, val_range ])
-    else:
-        blue = []
-        green = []
-        red = []
-        count = 0
-        pixel_sums = []
-        for row in image:
-            for pixel in row:
-                count += 1
-                blue.append(pixel[0])
-                green.append(pixel[1])
-                red.append(pixel[2])
-                pixel_sums.append( ( (pixel[0]/3) + (pixel[1]/3) + (pixel[2]/3) ) )
+        retStats.append([color[1], mean, val_range])
 
-        for color in [ [blue, "blue"], [green, "green"], [red, "red"] ]:
-            mean = np.mean(color[0])
-            val_max = np.max(color[0])
-            val_min = np.min(color[0])
-            val_range = val_max - val_min
-            retStats.append([color[1], mean, val_range])
-
-        avg_color = [np.sum(blue) / count, np.sum(green) / count, np.sum(red) / count]
-        mean = np.mean(image)
-        val_max = np.max(image)
-        val_min = np.min(image)
-        val_range = val_max - val_min
-        retStats.append([ 'shade', mean, val_range ])
+    avg_color = [np.sum(blue) / count, np.sum(green) / count, np.sum(red) / count]
+    mean = np.mean(image)
+    val_max = np.max(image)
+    val_min = np.min(image)
+    val_range = val_max - val_min
+    retStats.append([ 'shade', mean, val_range ])
 
     return retStats
 
@@ -345,7 +338,7 @@ def writeAudio(imageID, filename, path):
         ds.append(d)
 
     avgDist = round(avgDist / 3, 15)
-    log.debug("Average distance between COMs: %s", avgDist)
+    # log.debug("Average distance between COMs: %s", avgDist)
     outlierCOMs = 0
     for distIndex in range(len(ds)):
         if (ds[distIndex] > avgDist * 1.5):
@@ -360,7 +353,43 @@ def writeAudio(imageID, filename, path):
     else:
         primary_pitchset_choice = "powerful"
 
-    log.debug("\"%s\" pitch-set selected", primary_pitchset_choice)
+    log.debug("Primary pitch-set \"%s\" selected", primary_pitchset_choice)
+
+
+    # determine most prominent color for secondary_pitchset selection
+
+    avgRat = 0
+    for rat in color_ratios:
+        avgRat += rat
+
+    avgRat = avgRat/3
+
+    outliers = []
+    for ratChan in range(len(color_ratios)):
+        if color_ratios[ratChan] < 0.5*avgRat:
+            log.debug("Underlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
+            outliers.append(color_ratios[ [ratChan,(0.5*avgRat)-color_ratios[ratChan]] ])
+        if color_ratios[ratChan] > 1.5*avgRat:
+            log.debug("Overlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
+            outliers.append(color_ratios[ [ratChan,color_ratios[ratChan]-(1.5*avgRat)] ])
+
+    maxOutlier = [0,0]
+    for outlier in outliers:
+        if outliers[1] > maxOutlier[1]:
+            maxOutlier = outlier
+
+    # log.debug("Max outlier found for 2nd_pitchset in channel %s", str(maxOutlier))
+
+
+    if maxOutlier[0] == 0:
+        secondary_pitchset_choice = "virtue"
+    elif maxOutlier[0] == 1:
+        secondary_pitchset_choice = "legacy"
+    elif maxOutlier[0] == 2:
+        secondary_pitchset_choice = "passion"
+
+    log.debug("Secondary pitch-set \"%s\" selected", secondary_pitchset_choice)
+
 
     # [ [channel attribute, mean, range, ...]
     # imgAnal = analyze_image(img[0], img[2], img[1])
@@ -371,15 +400,29 @@ def writeAudio(imageID, filename, path):
     # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
     # imgAnal = analyze_image(img[0], img[2], img[1])
 
+    pitch_offset = 0  # change to edit key of playback
+
     for pitch_id in range(len(primary_pitchsets[primary_pitchset_choice])):
         pitch_content = primary_pitchsets[primary_pitchset_choice][pitch_id]
         # log.debug(pitch_content)
 
-        pitch_offset = 0  # change to edit key of playback
         played_pitch = notes[(pitch_content[0] + pitch_offset) % 12]
 
-        mixer.create_track(pitch_id, SINE_WAVE, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
-        mixer.add_note(pitch_id, note=played_pitch, octave=pitch_content[1], duration=duration, amplitude=1)
+        mixer.create_track(pitch_id, SAWTOOTH_WAVE, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
+        mixer.add_note(pitch_id, note=played_pitch, octave=pitch_content[1], duration=duration, amplitude=0.8)
+
+
+    pitch_iter_offset = len(primary_pitchsets[primary_pitchset_choice])
+    # log.debug("Iter offset: %s", str(pitch_iter_offset))
+    for pitch_id in range(len(secondary_pitchsets[secondary_pitchset_choice])):
+        pitch_content = secondary_pitchsets[secondary_pitchset_choice][pitch_id]
+        # log.debug(pitch_content)
+        # log.debug(pitch_id+pitch_iter_offset)
+
+        played_pitch = notes[(pitch_content[0] + pitch_offset) % 12]
+
+        mixer.create_track(pitch_id+pitch_iter_offset, SINE_WAVE, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
+        mixer.add_note(pitch_id+pitch_iter_offset, note=played_pitch, octave=pitch_content[1], duration=duration, amplitude=1)
 
 
     mixer.write_wav(path + '/' + imageID + '.wav')
