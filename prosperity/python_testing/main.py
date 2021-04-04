@@ -19,8 +19,6 @@ import numpy as np
 import cv2
 from tones import SINE_WAVE, SAWTOOTH_WAVE, TRIANGLE_WAVE, SQUARE_WAVE
 from tones.mixer import Mixer
-import pyaudio
-import wave
 from playsound import playsound
 import logging
 
@@ -48,26 +46,47 @@ TOGGLE_ANALYSIS = 0
 # Toggle generation and playback of audio
 TOGGLE_MAKE_AUDIO = 1
 volume = 0.4
-duration = 5
-
-# select which image, of those listed below, to select
-image_selected = 1
-
+duration = 3
 
 # format of images in this list is:
 # [ [name, path], ... ]
 image_pool =   [
-                ['hedgehog', 'hedgehog.jpeg'],
-                ['fabio', 'fabio.jpg'],
-                ['lenna', 'lenna.png']
-                                       ]
+    ['is_hedgehog', 'is_hedgehog.jpeg'],
+    ['hedgehog', 'hedgehog.jpeg'],
+    ['fabio', 'fabio.jpg'],
+    ['lenna', 'lenna.png']
+   ]
 
-img = image_pool[image_selected - 1]
+img = image_pool[0]
 
 # append testImages dir to paths
 path = "testImages/"
 for image in image_pool:
     image[1] = path + image[1]
+
+
+notes = ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
+
+# { "pitchset_name": [ [tonic-pitch, octave], [second-pitch, octave], ... ], ... }
+# Pitchsets, when given an offset, can be used to perform their associated emotion from any tonic pitch
+
+primary_pitchsets = { # general capture of image
+
+    # if image has little difference in center of masses ('Bb' add#4 maj7)
+    "lonely": [ [0,4], [4,5], [12,4], [10, 4], [5, 4] ],
+
+    # if one color is more distant by a measurable margin (add69)
+    "powerful": [ [0,4], [7,4], [2,5], [9, 5], [4, 5] ],
+
+}
+
+secondary_pitchsets = { # "bass notes", chosen based on further analysis of the image
+    "virtue": [ [2,2], [3, 11] ], # if green dominates by a measurable margin
+    "legacy": [ [2,2], [3, 9] ], # if red dominates
+    "passion": [ [2,2], [3, 8] ] # if red dominates
+    # "legacy" # if orange dominates
+}
+
 
 # [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
 colorSynths = [
@@ -123,8 +142,6 @@ def __VAR__(full_mat):
     var = []
 
 
-
-
 # params: ( image pixel matrix )
 # returns: color channels center of mass
 def __COM__(full_mat):
@@ -137,7 +154,7 @@ def __COM__(full_mat):
 
 
     for channel in range(getChannels(full_mat)):
-        log.debug("Performing center of mass function on color channel {}...".format(channel))
+        # log.debug("Performing center of mass function on color channel {}".format(channel))
 
         mat = channels[channel]
 
@@ -160,6 +177,17 @@ def __COM__(full_mat):
 
     return channels_COM
 
+# returns ratio of color for each channel (amount of color of chan[i] in image) / (potential for all color (size*255))
+def getColorAmount(mat):
+    rats = [0,0,0]
+    w, h = __getImageDimensions__(mat)
+    for row in mat:
+        for p in row:
+            for chanIndex in range(3):
+                rats[chanIndex] += p[chanIndex]
+    for ratIndex in range(3):
+        rats[ratIndex] = rats[ratIndex]/(255 * w * h)
+    return rats
 
 # params: ( image pixel matrix )
 # returns ( width, height )
@@ -188,7 +216,6 @@ def isgray(image):
 def analyze_image(name, image, path):
 
     retStats = [] # return stats
-
     if isgray(image):
         mean = np.mean(image)
         val_max = np.max(image)
@@ -254,19 +281,44 @@ def analyze_image(name, image, path):
     return retStats
 
 
+def colorMark(mat):
+    log.info("Analyzing image...")
+    circles = __COM__(mat)
+    rats = getColorAmount(mat)
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+
+    # log.debug(rats)
+    # log.debug(circles)
+
+    w, h = __getImageDimensions__(mat)
+    for chan in range(3):
+        mat = cv2.circle(
+            mat, (circles[chan][0], circles[chan][1]),
+            int(w * rats[chan] * 0.25),
+            colors[chan],
+            int(w / 150))
+
+    # convert COMs into measurements by image width
+    COMs = []
+    for chan in circles:
+        COMs.append( [chan[0]/w, chan[1]/w] )
+
+
+    return mat, rats, COMs
+
 #----------------< AUDIO GENERATION DEFINITIONS >----------------#
 
 
-def initColorSynth( iden, analysis, color, synth, attack=1, decay=1, v_f=0, v_v=0, octave=4, pitch_1='c' ):
+def initColorSynth( id, analysis, color, synth, attack=1, decay=1, v_f=0, v_v=0, octave=4, pitch_1='c' ):
 
-    if TOGGLE_ANALYSIS:
-        print(color + " tones being generated...")
-        print("Analysis...\n{}\n".format(analysis))
-    mixer.create_track(iden, synth, vibrato_frequency=v_f, vibrato_variance=v_v, attack=attack, decay=decay)
+    log.debug(color + " tones being generated")
+    log.debug("Analysis...\n{}\n".format(analysis))
+
+    mixer.create_track(id, synth, vibrato_frequency=v_f, vibrato_variance=v_v, attack=attack, decay=decay)
 
     presence = analysis[1]/255  # calculates the presence of each color in an image
                                 # (normalize the mean to 0-1 to stuff into amplitude)
-    mixer.add_note(iden, note=pitch_1, octave=octave, duration=duration, amplitude=presence)
+    mixer.add_note(id, note=pitch_1, octave=octave, duration=duration, amplitude=presence)
 
 
 #----------------< IMAGE PROCESSING >----------------#
@@ -281,7 +333,7 @@ try:
     isImage = img[2][0][0] # test to get first pixel value
 except TypeError:
     log.error("Inputted path must be an image. ")
-    log.debug("Check file names and extensions in image_pool to ensure they match the image (explicitly write out the file extension).")
+    log.warn("Check file names and extensions in image_pool to ensure they match the image (explicitly write out the file extension).")
     sys.exit()
 
 width, height = __getImageDimensions__(img[2])
@@ -295,75 +347,76 @@ if (width > 1500) or (height > 1500): # if image is larger than 800 pixels in ei
     img[2] = cv2.resize(img[2], dimensions, interpolation=cv2.INTER_AREA)
     cv2.imwrite(img[1], img[2])
 
+# determine first pitch pallet
+img[2], color_ratios, COMs = colorMark(img[2]) # mark it up yo
+
+log.debug("Color ratios: %s", str(color_ratios))
+log.debug("Center of masses: %s", str(COMs))
+
+avgDist = 0
+ds = []
+for COM_index in range(len(COMs)):
+    # distance between any one to the others is larger than x
+    i1 = COM_index % 3
+    i2 = (COM_index+1) % 3
+
+    xs = ( COMs[i1][0]-COMs[i2][0] ) ** 2
+    ys = ( COMs[i1][1]-COMs[i2][1] ) ** 2
+    d = ( xs + ys ) ** (1/2)
+    avgDist += d
+    ds.append(d)
+
+avgDist = round(avgDist/3, 15)
+log.debug("Average distance between COMs: %s", avgDist)
+outlierCOMs = 0
+for distIndex in range(len(ds)):
+    if (ds[distIndex] > avgDist * 1.5):
+        outlierCOMs += 1
+        log.debug("Upper outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
+    if (ds[distIndex] < avgDist * 0.5):
+        outlierCOMs += 1
+        log.debug("Lower outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
+
+
+if outlierCOMs == 1:
+    primary_pitchset_choice = "lonely"
+else:
+    primary_pitchset_choice = "powerful"
+
+log.debug("\"%s\" pitch-set selected", primary_pitchset_choice)
 
 # [ [channel attribute, mean, range, ...]
 # imgAnal = analyze_image(img[0], img[2], img[1])
 
-circles = __COM__(img[2])
+log.info("Writing/playing audio...")
+mixer = Mixer(44100, volume)
 
-colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
-# print(circles)
+# [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
+# imgAnal = analyze_image(img[0], img[2], img[1])
 
-if TOGGLE_SHOW_IMAGE and TOGGLE_DRAW:
-    w, h = __getImageDimensions__(img[2])
-    for circle in range(getChannels(img[2])):
-        image = cv2.circle(
-                        img[2], (circles[circle][0],circles[circle][1]),
-                        int( w/8 ),
-                        colors[circle],
-                        int( w/150 ) )
+for pitch_id in range(len(primary_pitchsets[primary_pitchset_choice])):
+    pitch_content = primary_pitchsets[primary_pitchset_choice][pitch_id]
+    # log.debug(pitch_content)
 
+    pitch_offset = 0 # change to edit key of playback
+    played_pitch = notes[( pitch_content[0] + pitch_offset) % 12]
 
-#----------------< AUDIO GENERATION >----------------#
-
-if TOGGLE_MAKE_AUDIO:
-    log.info("Writing/playing audio...")
-    mixer = Mixer(44100, volume)
-
-    # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
-    imgAnal = analyze_image(img[0], img[2], img[1])
-
-    if isgray(img[2]): # only get value synth
-        rs = colorSynths[3]
-        anal = imgAnal[0]
-        initColorSynth(0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
-
-    else: # get all color synths
-        for i in range(4):
-            rs = colorSynths[i]
-            anal = imgAnal[i]
-            initColorSynth( i-1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
-
-    mixer.write_wav('audio.wav')
-    samples = mixer.mix()
+    mixer.create_track(pitch_id, SINE_WAVE, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
+    mixer.add_note(pitch_id, note=played_pitch, octave=pitch_content[1], duration=duration, amplitude=1)
 
 
-#----------------< AUDIO PLAYBACK >----------------#
+# for i in range(4):
+#     rs = colorSynths[i]
+#     anal = imgAnal[i]
+#     initColorSynth( i-1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7] )
 
-if TOGGLE_MAKE_AUDIO:
-    
-    log.info("Interpretation playing back now...")
-    playsound('audio.wav')
+mixer.write_wav('audio.wav')
+samples = mixer.mix()
 
-    # wave module method for playing audio file
-    # Set chunk size of 1024 samples per data frame
-    # chunk = 1024
-    # wf = wave.open('audio.wav', 'rb')
-    # p = pyaudio.PyAudio()
-    #
-    # # Open a .Stream object to write the WAV file to
-    # stream = p.open(format = p.get_format_from_width(wf.getsampwidth()),
-    #                 channels = wf.getnchannels(),
-    #                 rate = wf.getframerate(),
-    #                 output = True) # indicates playback as opposed to recording
-    #
-    # data = wf.readframes(chunk)
-    # while data != '':
-    #     stream.write(data)
-    #     data = wf.readframes(chunk)
-    #
-    # stream.close()
-    # p.terminate()
+log.info("Interpretation playing back now.")
+playsound('audio.wav')
+
+
 
 
 #----------------< IMAGE MANAGEMENT >----------------#
@@ -371,12 +424,12 @@ if TOGGLE_MAKE_AUDIO:
 
 if TOGGLE_SHOW_IMAGE:
 
-    log.info("Image(s) being displayed")
+    log.info("Image being displayed.")
     cv2.imshow(img[0], img[2])
 
-    cv2.imshow('B-RGB', __STRIP_INPLACE__(img[2], 0))
-    cv2.imshow('G-RGB', __STRIP_INPLACE__(img[2], 1))
-    cv2.imshow('R-RGB', __STRIP_INPLACE__(img[2], 2))
+    # cv2.imshow('B-RGB', __STRIP_INPLACE__(img[2], 0))
+    # cv2.imshow('G-RGB', __STRIP_INPLACE__(img[2], 1))
+    # cv2.imshow('R-RGB', __STRIP_INPLACE__(img[2], 2))
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
