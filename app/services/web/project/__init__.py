@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, render_template, request, redirect, url_for
+from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext.automap import automap_base
 from werkzeug.utils import secure_filename
 import os
 import photophonic as pp # main audio generation and image processing definitions
@@ -25,6 +26,12 @@ app.config.update(
 #     active = db.Column(db.Boolean(), default=True, nullable=False)
 #     def __init__(self, email):
 #         self.email = email
+
+# Map to existing database
+Base = automap_base()
+Base.prepare(db.engine, reflect=True)
+UsersDb = Base.classes.users
+ImagesDb = Base.classes.images
 
 
 @app.route('/', methods = ['GET'])
@@ -70,12 +77,21 @@ def upload():
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     error = None
-    # results = db.session.query(test1).all()
-    # error = results
+
     if request.method == 'POST':
-        if request.form['username'] != 'admin' or request.form['password'] != 'admin':
+
+        # get inputed username and password
+        inputUser = request.form['username']
+        inputPassword = request.form['password']
+
+        # query database
+        userResult = db.session.query(UsersDb).filter_by(user_name=inputUser).first()
+        passResult = db.session.query(UsersDb).filter_by(password=inputPassword).first()
+
+        if not userResult or not passResult:
             error = 'Invalid Credentials. Please try again.'
         else:
+            # flash('Log in successful')
             return redirect("/")
     return render_template("login.html", error=error)
 
