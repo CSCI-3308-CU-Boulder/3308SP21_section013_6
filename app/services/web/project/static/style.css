@@ -26,7 +26,7 @@ h5{
 .slickCard {
 	height: auto;
 	align-self: stretch;
-	/*opacity: 0.33;*/
+	opacity: 0.33;
 }
 .centerVert{
 	position: absolute;

@@ -124,30 +124,30 @@ def creations():
     return render_template("creations.html")
 
 
-@app.route('/test',methods = ['POST', 'GET'])
-def test():
-    return render_template("test.html")
-
-
-@app.route('/result', methods=['POST', 'GET'])
-def result():
-    if request.method == 'POST':
-        if request.form['submit_button'] == 'Hedgehog':
-            filename = pp.colorMark('hedgehog', '.jpeg')
-            return render_template(     "result.html",
-                                        image='hedgehog.jpeg',
-                                        dimensions=pp.getImageDimensions('hedgehog.jpeg'),
-                                        markedImage=filename
-                                    )
-        elif request.form['submit_button'] == 'Cloud':
-            filename = pp.colorMark('cloud', '.jpg')
-            return render_template(     "result.html",
-                                        image='cloud.jpg',
-                                        dimensions=pp.getImageDimensions('cloud.jpg'),
-                                        markedImage=filename
-                                   )
-        else:
-            pass  # unknown
-    elif request.method == 'GET':
-        return render_template('result.html')
+# @app.route('/test',methods = ['POST', 'GET'])
+# def test():
+#     return render_template("test.html")
+#
+#
+# @app.route('/result', methods=['POST', 'GET'])
+# def result():
+#     if request.method == 'POST':
+#         if request.form['submit_button'] == 'Hedgehog':
+#             filename = pp.colorMark('hedgehog', '.jpeg')
+#             return render_template(     "result.html",
+#                                         image='hedgehog.jpeg',
+#                                         dimensions=pp.getImageDimensions('hedgehog.jpeg'),
+#                                         markedImage=filename
+#                                     )
+#         elif request.form['submit_button'] == 'Cloud':
+#             filename = pp.colorMark('cloud', '.jpg')
+#             return render_template(     "result.html",
+#                                         image='cloud.jpg',
+#                                         dimensions=pp.getImageDimensions('cloud.jpg'),
+#                                         markedImage=filename
+#                                    )
+#         else:
+#             pass  # unknown
+#     elif request.method == 'GET':
+#         return render_template('result.html')
 

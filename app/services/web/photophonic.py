@@ -52,7 +52,7 @@ notes = ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
 primary_pitchsets = { # general capture of image
 
     # if image has little difference in center of masses ('Bb' add#4 maj7)
-    "lonely": [ [0,4], [4,5], [12,4], [10,4], [5,4] ],
+    "lonely": [ [0,3], [4,4], [12,3], [10,3], [5,3] ],
 
     # if one color is more distant by a measurable margin (add69)
     "powerful": [ [0,3], [7,3], [2,4], [9,4], [4,4] ],
@@ -312,7 +312,7 @@ def writeAudio(imageID, filename, path):
 
         log.warning("Resized image {} ({}, {}) for quicker analysis".format(img[1], width, height))
         img[2] = cv2.resize(img[2], dimensions, interpolation=cv2.INTER_AREA)
-        cv2.imwrite(img[1], img[2])
+        cv2.imwrite('project/static/uuids/' + img[1], img[2])
 
     # [ [channel attribute, mean, range, ...]
     # imgAnal = analyze_image(img[0], img[2], img[1])
@@ -321,8 +321,8 @@ def writeAudio(imageID, filename, path):
     mixer = Mixer(44100, volume)
     img[2], color_ratios, COMs = colorMark(img[2])  # mark it up yo
 
-    log.debug("Color ratios: %s", str(color_ratios))
-    log.debug("Center of masses: %s", str(COMs))
+    # log.debug("Color ratios: %s", str(color_ratios))
+    # log.debug("Center of masses: %s", str(COMs))
 
     avgDist = 0
     ds = []
@@ -382,7 +382,7 @@ def writeAudio(imageID, filename, path):
 
 
     if maxOutlier[0] == 0:
-        secondary_pitchset_choice = "virtue"
+        secondary_pitchset_choice = "virtue" # virtue by default
     elif maxOutlier[0] == 1:
         secondary_pitchset_choice = "legacy"
     elif maxOutlier[0] == 2:
