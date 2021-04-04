@@ -44,14 +44,27 @@ volume = 0.4
 duration = 5
 
 
-# [ [ color, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
-colorSynths = [
-    [ 'red', SAWTOOTH_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'f'],
-    [ 'blue', SINE_WAVE, 1.0, 1.0, 0.0, 0.0, 5, 'a'],
-    [ 'green', TRIANGLE_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'e'],
-    [ 'value', SQUARE_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'd'],
-    [ 'alpha', SAWTOOTH_WAVE, 1.0, 1.0, 0.0, 0.0, 4, 'bb'],
-    ]
+notes = ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
+
+# { "pitchset_name": [ [tonic-pitch, octave], [second-pitch, octave], ... ], ... }
+# Pitchsets, when given an offset, can be used to perform their associated emotion from any tonic pitch
+
+primary_pitchsets = { # general capture of image
+
+    # if image has little difference in center of masses ('Bb' add#4 maj7)
+    "lonely": [ [0,4], [4,5], [12,4], [10, 4], [5, 4] ],
+
+    # if one color is more distant by a measurable margin (add69)
+    "powerful": [ [0,4], [7,4], [2,5], [9, 5], [4, 5] ],
+
+}
+
+secondary_pitchsets = { # "bass notes", chosen based on further analysis of the image
+    "virtue": [ [2,2], [3, 11] ], # if green dominates by a measurable margin
+    "legacy": [ [2,2], [3, 9] ], # if red dominates
+    "passion": [ [2,2], [3, 8] ] # if red dominates
+    # "legacy" # if orange dominates
+}
 
 
 #----------------< IMAGE PROCESSING DEFINITIONS >----------------#
@@ -161,6 +174,7 @@ def getImageDimensions(filepath):
 
 # General-use funtion for determining if something is an image
 def isImage(filename):
+    print(filename)
     mat = cv2.imread("project/static/" + filename)
     if mat is None:
         sys.exit("Must be an image.")
@@ -242,15 +256,14 @@ def initColorSynth(mixer, iden, analysis, color, synth, attack=1, decay=1, v_f=0
 
 
 
-def colorMark(filename, extension):
-
-    mat = isImage(filename + extension)
-
+def colorMark(mat):
+    log.info("Analyzing image...")
     circles = __COM__(mat)
     rats = getColorAmount(mat)
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 
-    log.debug(rats)
+    # log.debug(rats)
+    # log.debug(circles)
 
     w, h = __getImageDimensions__(mat)
     for chan in range(3):
@@ -260,16 +273,13 @@ def colorMark(filename, extension):
             colors[chan],
             int(w / 150))
 
-    imgId = str(uuid.uuid4())
+    # convert COMs into measurements by image width
+    COMs = []
+    for chan in circles:
+        COMs.append( [chan[0]/w, chan[1]/w] )
 
-    readFilename = 'uuids/' + imgId + extension
-    writeFilename =  'project/static/' + readFilename
-    log.debug(writeFilename)
-    log.debug(readFilename)
-    cv2.imwrite(writeFilename, mat)
-    print(cv2.imread(readFilename))
 
-    return readFilename
+    return mat, rats, COMs
 
 def makeUUID(f, uploadPath):
     file_path = os.path.join(uploadPath, f.filename)
@@ -279,7 +289,7 @@ def makeUUID(f, uploadPath):
     image_id = str(uuid.uuid4())
     imgName = image_id + '.' + "jpg"
     idFilename = 'project/static/uuids/' + imgName
-    log.debug("Writing image: " + idFilename)
+    # log.debug("Writing image: " + idFilename)
     cv2.imwrite(idFilename, image_mat)
 
     os.remove(file_path)
@@ -288,7 +298,7 @@ def makeUUID(f, uploadPath):
 
 def writeAudio(imageID, filename, path):
     img = [imageID, filename]
-    log.debug("Reading image...")
+    # log.debug("Reading image...")
 
     file_path = os.path.join( path, filename )
     img.append( cv2.imread(file_path) )
@@ -314,23 +324,65 @@ def writeAudio(imageID, filename, path):
     # [ [channel attribute, mean, range, ...]
     # imgAnal = analyze_image(img[0], img[2], img[1])
 
-    log.debug("Writing audio: {}/{}.wav".format(path, imageID))
+    # log.info("Writing audio: {}/{}.wav".format(path, imageID))
+    mixer = Mixer(44100, volume)
+    img[2], color_ratios, COMs = colorMark(img[2])  # mark it up yo
+
+    log.debug("Color ratios: %s", str(color_ratios))
+    log.debug("Center of masses: %s", str(COMs))
+
+    avgDist = 0
+    ds = []
+    for COM_index in range(len(COMs)):
+        # distance between any one to the others is larger than x
+        i1 = COM_index % 3
+        i2 = (COM_index + 1) % 3
+
+        xs = (COMs[i1][0] - COMs[i2][0]) ** 2
+        ys = (COMs[i1][1] - COMs[i2][1]) ** 2
+        d = (xs + ys) ** (1 / 2)
+        avgDist += d
+        ds.append(d)
+
+    avgDist = round(avgDist / 3, 15)
+    log.debug("Average distance between COMs: %s", avgDist)
+    outlierCOMs = 0
+    for distIndex in range(len(ds)):
+        if (ds[distIndex] > avgDist * 1.5):
+            outlierCOMs += 1
+            log.debug("Upper outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
+        if (ds[distIndex] < avgDist * 0.5):
+            outlierCOMs += 1
+            log.debug("Lower outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
+
+    if outlierCOMs == 1:
+        primary_pitchset_choice = "lonely"
+    else:
+        primary_pitchset_choice = "powerful"
+
+    log.debug("\"%s\" pitch-set selected", primary_pitchset_choice)
+
+    # [ [channel attribute, mean, range, ...]
+    # imgAnal = analyze_image(img[0], img[2], img[1])
+
+    log.info("Writing audio...")
     mixer = Mixer(44100, volume)
 
     # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
-    imgAnal = analyze_image(img[0], img[2], img[1])
+    # imgAnal = analyze_image(img[0], img[2], img[1])
 
-    if isgray(img[2]):  # only get value synth
-        rs = colorSynths[3]
-        anal = imgAnal[0]
-        initColorSynth(mixer, 0, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
+    for pitch_id in range(len(primary_pitchsets[primary_pitchset_choice])):
+        pitch_content = primary_pitchsets[primary_pitchset_choice][pitch_id]
+        # log.debug(pitch_content)
 
-    else:  # get all color synths
-        for i in range(4):
-            rs = colorSynths[i]
-            anal = imgAnal[i]
-            initColorSynth(mixer, i - 1, anal, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6], rs[7])
+        pitch_offset = 0  # change to edit key of playback
+        played_pitch = notes[(pitch_content[0] + pitch_offset) % 12]
+
+        mixer.create_track(pitch_id, SINE_WAVE, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
+        mixer.add_note(pitch_id, note=played_pitch, octave=pitch_content[1], duration=duration, amplitude=1)
+
 
     mixer.write_wav(path + '/' + imageID + '.wav')
 
+    log.info("Audio written...")
     return imageID + '.wav'

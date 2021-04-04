@@ -1,7 +1,18 @@
+
+#------------------------------------------------
+#
+#
+# Author: The Photophonic Team
+# CSCI_3308, Photophonic Web-App Project
+# Created on 3/8/21
+#
+#
+#------------------------------------------------
+
+
 from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.automap import automap_base
-from werkzeug.utils import secure_filename
 import os
 import photophonic as pp # main audio generation and image processing definitions
 
@@ -31,7 +42,7 @@ app.config.update(
 Base = automap_base()
 Base.prepare(db.engine, reflect=True)
 UsersDb = Base.classes.users
-ImagesDb = Base.classes.images
+# ImagesDb = Base.classes.images #          <----------- broken line. throws error, works when commented
 
 
 @app.route('/', methods = ['GET'])
