@@ -123,7 +123,7 @@ def account_reg():
         if checkUsername:
             error = 'Username already Exists.'
         elif(newUsername and newEmail and newPassword):
-            new_user = UsersDb(user_name = newUsername, email = newEmail, password = newPassword)
+            new_user = UsersDb(user_name = newUsername, password = newPassword)
             db.session.add(new_user)
             db.session.commit()
             return redirect("/")
