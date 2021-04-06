@@ -42,7 +42,7 @@ app.config.update(
 Base = automap_base()
 Base.prepare(db.engine, reflect=True)
 UsersDb = Base.classes.users
-# ImagesDb = Base.classes.images #          <----------- broken line. throws error, works when commented
+ImagesDb = Base.classes.images #          <----------- broken line. throws error, works when commented
 
 
 @app.route('/', methods = ['GET'])
@@ -71,6 +71,9 @@ def upload():
             # image_matrix  => list containing pixel data
             # username      => ...?
             # -------------------------------------------------------------#
+
+            db.insert(ImagesDb).values(name='username', fullname='Full Username')
+
 
             return redirect(url_for('home', uuid=image_id))
 
