@@ -12,26 +12,25 @@
 <body>
 
     {% include "partials/header.html" %}
+    
+    <div class="center text-center mb-3">
+		<form class="form-signin" style="margin-left: 30vw; margin-right: 30vw;" method="post">
+			<h1 class="h3 mb-3 font-weight-normal">Login to PhotoPhonic</h1>
+			<br>
+			<label for="newUsername" class="sr-only">Username</label>
+			<input id="newUsername" class="form-control" placeholder="Username" name="newUsername" value="{{request.form.newUsername}}" required autofocus>
+            <label for="newPassword" class="sr-only">Password</label>
+			<input id="newEmail" class="form-control" placeholder="Email Address" name="newEmail" value="{{request.form.newEmail}}" required>
+			<label for="newEmail" class="sr-only">Email Address</label>
+			<input type="password" id="newPassword" class="form-control" placeholder="Password" name="newPassword" value="{{request.form.newPassword}}" required>
 
-    <div class="container center text-center mb-3">
-        <h1 class="h3 mb-3 font-weight-normal">Create a PhotoPhonic account</h1>
-        <form>
-            <label for="username">Username:</label>
-            <br>
-            <input type="text" id="username" name="username">
-            <br>
-            <label for="email">Email Address:</label>
-            <br>
-            <input type="email" id="email" name="email" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$">
-            <br>
-            <label for="pwd">Password:</label>
-            <br>
-            <input type="password" id="pwd" name="pwd">
-            <br>
-            <br>
-            <input type="submit" value="Create!">
-        </form>
-    </div>
+			<button class="btn btn-lg btn-primary" type="submit">Create!</button>
+			<br> <br>
+			{% if error %}
+        		<p class="error" style="color:red"><strong>Error:</strong> {{ error }}
+    		{% endif %}
+    						<hr>
+		</form>
 
     {% include "partials/footer.html" %}
 

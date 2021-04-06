@@ -110,17 +110,24 @@ def login():
     return render_template("login.html", error=error)
 
 
-@app.route("/account_reg", methods = ['GET'])
+@app.route("/account_reg", methods = ['GET','POST'])
 def account_reg():
-    return render_template("account_reg.html")
-def user_records():
-    newUsername = request.args.get('username')
-    newEmail = request.args.get('email')
-    newPassword = request.args.get('pwd')
-    if(newUsername and newEmail and newPassword):
-        # Add three items to users DB... somehow lol...
-        print(newUsername)
+    error = None
+    if request.method == 'POST':
 
+        newUsername = request.form['newUsername']
+        newEmail = request.form['newEmail']
+        newPassword = request.form['newPassword']
+
+        checkUsername = db.session.query(UsersDb).filter_by(user_name=newUsername).first()
+        if checkUsername:
+            error = 'Username already Exists.'
+        elif(newUsername and newEmail and newPassword):
+            new_user = UsersDb(user_name = newUsername, email = newEmail, password = newPassword)
+            db.session.add(new_user)
+            db.session.commit()
+            return redirect("/")
+    return render_template("account_reg.html", error=error)
 
 @app.route("/creations")
 def creations():
