@@ -46,7 +46,7 @@ TOGGLE_ANALYSIS = 0
 # Toggle generation and playback of audio
 TOGGLE_MAKE_AUDIO = 1
 volume = 0.4
-duration = 3
+duration = 7
 
 # format of images in this list is:
 # [ [name, path], ... ]
@@ -57,7 +57,7 @@ image_pool =   [
     ['lenna', 'lenna.png']
    ]
 
-img = image_pool[0]
+img = image_pool[1]
 
 # append testImages dir to paths
 path = "testImages/"
@@ -73,7 +73,7 @@ notes = ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
 primary_pitchsets = { # general capture of image
 
     # if image has little difference in center of masses ('Bb' add#4 maj7)
-    "lonely": [ [0,4], [4,5], [12,4], [10, 4], [5, 4] ],
+    "lonely": [ [0,5], [4,5], [12,4], [10, 4], [5, 4] ],
 
     # if one color is more distant by a measurable margin (add69)
     "powerful": [ [0,4], [7,4], [2,5], [9, 5], [4, 5] ],
@@ -81,9 +81,10 @@ primary_pitchsets = { # general capture of image
 }
 
 secondary_pitchsets = { # "bass notes", chosen based on further analysis of the image
-    "virtue": [ [2,2], [3, 11] ], # if green dominates by a measurable margin
-    "legacy": [ [2,2], [3, 9] ], # if red dominates
-    "passion": [ [2,2], [3, 8] ] # if red dominates
+    "none": [], # if image isn't colorful enough
+    "virtue": [ [0,2], [11, 3] ], # if green dominates by a measurable margin
+    "legacy": [ [0,2], [9, 3] ], # if red dominates
+    "passion": [ [0,2], [8, 3] ] # if red dominates
     # "legacy" # if orange dominates
 }
 
@@ -135,6 +136,24 @@ def __STRIP_INPLACE__(mat, chan):
         ret[:, :, 0] = 0
         ret[:, :, 1] = 0
     return ret
+
+
+def image_colorfulness(image):
+	# split the image into its respective RGB components
+	(B, G, R) = cv2.split(image.astype("float"))
+	# compute rg = R - G
+	rg = np.absolute(R - G)
+	# compute yb = 0.5 * (R + G) - B
+	yb = np.absolute(0.5 * (R + G) - B)
+	# compute the mean and standard deviation of both `rg` and `yb`
+	(rbMean, rbStd) = (np.mean(rg), np.std(rg))
+	(ybMean, ybStd) = (np.mean(yb), np.std(yb))
+	# combine the mean and standard deviations
+	stdRoot = np.sqrt((rbStd ** 2) + (ybStd ** 2))
+	meanRoot = np.sqrt((rbMean ** 2) + (ybMean ** 2))
+	# derive the "colorfulness" metric and return it
+	return stdRoot + (0.3 * meanRoot)
+
 
 # params: ( image pixel matrix)
 # returns: color channels variance
@@ -282,6 +301,7 @@ def analyze_image(name, image, path):
 
 
 def colorMark(mat):
+    markedMat = mat.copy()
     log.info("Analyzing image...")
     circles = __COM__(mat)
     rats = getColorAmount(mat)
@@ -293,7 +313,7 @@ def colorMark(mat):
     w, h = __getImageDimensions__(mat)
     for chan in range(3):
         mat = cv2.circle(
-            mat, (circles[chan][0], circles[chan][1]),
+            markedMat, (circles[chan][0], circles[chan][1]),
             int(w * rats[chan] * 0.25),
             colors[chan],
             int(w / 150))
@@ -304,7 +324,7 @@ def colorMark(mat):
         COMs.append( [chan[0]/w, chan[1]/w] )
 
 
-    return mat, rats, COMs
+    return markedMat, rats, COMs
 
 #----------------< AUDIO GENERATION DEFINITIONS >----------------#
 
@@ -348,10 +368,10 @@ if (width > 1500) or (height > 1500): # if image is larger than 800 pixels in ei
     cv2.imwrite(img[1], img[2])
 
 # determine first pitch pallet
-img[2], color_ratios, COMs = colorMark(img[2]) # mark it up yo
+markedMat, color_ratios, COMs = colorMark(img[2]) # mark it up yo
 
-log.debug("Color ratios: %s", str(color_ratios))
-log.debug("Center of masses: %s", str(COMs))
+# log.debug("Color ratios: %s", str(color_ratios))
+# log.debug("Center of masses: %s", str(COMs))
 
 avgDist = 0
 ds = []
@@ -367,7 +387,7 @@ for COM_index in range(len(COMs)):
     ds.append(d)
 
 avgDist = round(avgDist/3, 15)
-log.debug("Average distance between COMs: %s", avgDist)
+# log.debug("Average distance between COMs: %s", avgDist)
 outlierCOMs = 0
 for distIndex in range(len(ds)):
     if (ds[distIndex] > avgDist * 1.5):
@@ -377,7 +397,7 @@ for distIndex in range(len(ds)):
         outlierCOMs += 1
         log.debug("Lower outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
 
-
+# select primary pitch-set based on above calculations
 if outlierCOMs == 1:
     primary_pitchset_choice = "lonely"
 else:
@@ -385,8 +405,47 @@ else:
 
 log.debug("\"%s\" pitch-set selected", primary_pitchset_choice)
 
-# [ [channel attribute, mean, range, ...]
-# imgAnal = analyze_image(img[0], img[2], img[1])
+
+colorfulness = image_colorfulness(img[2])
+log.debug("Colorfulness is : %s", str(colorfulness))
+
+# secondary pitch-set selection
+
+
+avgRat = 0
+for rat in color_ratios:
+    avgRat += rat
+
+avgRat = avgRat / 3
+
+outliers = [] #     [ ratChannel , outlying margin ]
+for ratChan in range(len(color_ratios)):
+    if color_ratios[ratChan] < 0.5 * avgRat:
+        log.debug("Underlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
+        outliers.append(color_ratios[[ratChan, (0.5 * avgRat) - color_ratios[ratChan]]])
+    if color_ratios[ratChan] > 1.5 * avgRat:
+        log.debug("Overlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
+        outliers.append(color_ratios[[ratChan, color_ratios[ratChan] - (1.5 * avgRat)]])
+
+maxOutlier = [None,None]
+for outlier in outliers:
+    if outliers[1] > maxOutlier[1]:
+        maxOutlier = outlier
+
+# log.debug("Max outlier found for 2nd_pitchset in channel %s", str(maxOutlier))
+
+
+if maxOutlier[0] is None or colorfulness < 50:
+    secondary_pitchset_choice = "none"
+elif maxOutlier[0] == 0:
+    secondary_pitchset_choice = "virtue"
+elif maxOutlier[0] == 1:
+    secondary_pitchset_choice = "legacy"
+elif maxOutlier[0] == 2:
+    secondary_pitchset_choice = "passion"
+
+log.debug("Secondary pitch-set \"%s\" selected", secondary_pitchset_choice)
+
 
 log.info("Writing/playing audio...")
 mixer = Mixer(44100, volume)
@@ -394,6 +453,7 @@ mixer = Mixer(44100, volume)
 # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
 # imgAnal = analyze_image(img[0], img[2], img[1])
 
+# write tones based on pitchset selected
 for pitch_id in range(len(primary_pitchsets[primary_pitchset_choice])):
     pitch_content = primary_pitchsets[primary_pitchset_choice][pitch_id]
     # log.debug(pitch_content)
@@ -425,7 +485,7 @@ playsound('audio.wav')
 if TOGGLE_SHOW_IMAGE:
 
     log.info("Image being displayed.")
-    cv2.imshow(img[0], img[2])
+    cv2.imshow(img[0], markedMat)
 
     # cv2.imshow('B-RGB', __STRIP_INPLACE__(img[2], 0))
     # cv2.imshow('G-RGB', __STRIP_INPLACE__(img[2], 1))

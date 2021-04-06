@@ -60,8 +60,9 @@ primary_pitchsets = { # general capture of image
 }
 
 secondary_pitchsets = { # "bass notes", chosen based on further analysis of the image
+    "none": [],  # if image isn't colorful enough
+    "virtue": [ [2,2], [11, 3] ], # if green dominates
     "legacy": [ [2,2], [9, 3] ], # if blue dominates by a measurable margin
-    "virtue": [ [2,2], [1, 3] ], # if green dominates
     "passion": [ [2,2], [8, 3] ] # if red dominates
     # "legacy" # if orange dominates
 }
@@ -98,6 +99,25 @@ def __STRIP_INPLACE__(mat, chan):
         ret[:, :, 0] = 0
         ret[:, :, 1] = 0
     return ret
+
+
+def image_colorfulness(image):
+	# split the image into its respective RGB components
+	(B, G, R) = cv2.split(image.astype("float"))
+	# compute rg = R - G
+	rg = np.absolute(R - G)
+	# compute yb = 0.5 * (R + G) - B
+	yb = np.absolute(0.5 * (R + G) - B)
+	# compute the mean and standard deviation of both `rg` and `yb`
+	(rbMean, rbStd) = (np.mean(rg), np.std(rg))
+	(ybMean, ybStd) = (np.mean(yb), np.std(yb))
+	# combine the mean and standard deviations
+	stdRoot = np.sqrt((rbStd ** 2) + (ybStd ** 2))
+	meanRoot = np.sqrt((rbMean ** 2) + (ybMean ** 2))
+	# derive the "colorfulness" metric and return it
+	return stdRoot + (0.3 * meanRoot)
+
+
 
 # params: ( image pixel matrix)
 # returns: color channels variance
@@ -358,35 +378,43 @@ def writeAudio(imageID, filename, path):
 
     # determine most prominent color for secondary_pitchset selection
 
-    avgRat = 0
-    for rat in color_ratios:
-        avgRat += rat
+    colorfulness = image_colorfulness(img[2])
+    log.debug("Colorfulness is : %s", str(colorfulness))
 
-    avgRat = avgRat/3
+    if colorfulness < 50: # determine if image is colorful enough to deserve a second pitchset (bass notes)
+        secondary_pitchset_choice = "none"
+    else:
 
-    outliers = []
-    for ratChan in range(len(color_ratios)):
-        if color_ratios[ratChan] < 0.5*avgRat:
-            log.debug("Underlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
-            outliers.append(color_ratios[ [ratChan,(0.5*avgRat)-color_ratios[ratChan]] ])
-        if color_ratios[ratChan] > 1.5*avgRat:
-            log.debug("Overlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
-            outliers.append(color_ratios[ [ratChan,color_ratios[ratChan]-(1.5*avgRat)] ])
+        avgRat = 0
+        for rat in color_ratios:
+            avgRat += rat
 
-    maxOutlier = [0,0]
-    for outlier in outliers:
-        if outliers[1] > maxOutlier[1]:
-            maxOutlier = outlier
+        avgRat = avgRat/3
 
-    # log.debug("Max outlier found for 2nd_pitchset in channel %s", str(maxOutlier))
+        outliers = []
+        for ratChan in range(len(color_ratios)):
+            if color_ratios[ratChan] < 0.5*avgRat:
+                log.debug("Underlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
+                outliers.append(color_ratios[ [ratChan,(0.5*avgRat)-color_ratios[ratChan]] ])
+            if color_ratios[ratChan] > 1.5*avgRat:
+                log.debug("Overlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
+                outliers.append(color_ratios[ [ratChan,color_ratios[ratChan]-(1.5*avgRat)] ])
 
+        maxOutlier = [None, None]
+        for outlier in outliers:
+            if outliers[1] > maxOutlier[1]:
+                maxOutlier = outlier
 
-    if maxOutlier[0] == 0:
-        secondary_pitchset_choice = "virtue" # virtue by default
-    elif maxOutlier[0] == 1:
-        secondary_pitchset_choice = "legacy"
-    elif maxOutlier[0] == 2:
-        secondary_pitchset_choice = "passion"
+        # log.debug("Max outlier found for 2nd_pitchset in channel %s", str(maxOutlier))
+
+        if maxOutlier[0] is None:
+            secondary_pitchset_choice = "none"
+        elif maxOutlier[0] == 0:
+            secondary_pitchset_choice = "virtue"
+        elif maxOutlier[0] == 1:
+            secondary_pitchset_choice = "legacy"
+        elif maxOutlier[0] == 2:
+            secondary_pitchset_choice = "passion"
 
     log.debug("Secondary pitch-set \"%s\" selected", secondary_pitchset_choice)
 
@@ -402,13 +430,26 @@ def writeAudio(imageID, filename, path):
 
     pitch_offset = 0  # change to edit key of playback
 
+    # a measure of how many sawtooth synths to use on playback
+    # as determined by the images colorfulness factor calculated above
+    colorful_pitches = round(colorfulness/10) - 4
+    log.debug("\"Colorful\" pitches to be created: %s", str(colorful_pitches+1))
+
+    instrument = SAWTOOTH_WAVE
+
     for pitch_id in range(len(primary_pitchsets[primary_pitchset_choice])):
         pitch_content = primary_pitchsets[primary_pitchset_choice][pitch_id]
         # log.debug(pitch_content)
 
         played_pitch = notes[(pitch_content[0] + pitch_offset) % 12]
 
-        mixer.create_track(pitch_id, SAWTOOTH_WAVE, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
+        if pitch_id > colorful_pitches:
+            instrument = SINE_WAVE
+            log.debug("\"Bland\" Instrument added")
+        else:
+            log.debug("Colorful Instrument added")
+
+        mixer.create_track(pitch_id, instrument, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
         mixer.add_note(pitch_id, note=played_pitch, octave=pitch_content[1], duration=duration, amplitude=0.8)
 
 
@@ -421,8 +462,13 @@ def writeAudio(imageID, filename, path):
 
         played_pitch = notes[(pitch_content[0] + pitch_offset) % 12]
 
+        octave=pitch_content[1]
+        if octave < 4: # lower volume on higher notes
+            amp = 0.8
+        else:
+            amp = 1
         mixer.create_track(pitch_id+pitch_iter_offset, SINE_WAVE, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
-        mixer.add_note(pitch_id+pitch_iter_offset, note=played_pitch, octave=pitch_content[1], duration=duration, amplitude=1)
+        mixer.add_note(pitch_id+pitch_iter_offset, note=played_pitch, octave=octave, duration=duration, amplitude=amp)
 
 
     mixer.write_wav(path + '/' + imageID + '.wav')
