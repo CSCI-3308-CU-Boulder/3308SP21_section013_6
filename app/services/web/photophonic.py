@@ -48,10 +48,9 @@ notes = ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
 # Pitchsets, when given an offset, can be used to perform their associated emotion from any tonic pitch
 # pitchset 1 describes the spread of colors in a given image
 primary_pitchsets = {
-    # if image has little difference in center of masses ('Bb' add#4 maj7)
     "lonely": [ [5,3], [7,3], [9,3], [0,4], [4,5] ],
 
-    # if one color is more distant by a measurable margin (add69)
+    # if image has little difference in center of masses
     "powerful": [ [0,3], [7,3], [2,4], [9,4], [4,4] ],
 }
 
