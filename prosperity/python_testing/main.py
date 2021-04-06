@@ -453,6 +453,9 @@ mixer = Mixer(44100, volume)
 # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
 # imgAnal = analyze_image(img[0], img[2], img[1])
 
+# [ [channel attribute, mean, range, ...]
+# imgAnal = analyze_image(img[0], img[2], img[1])
+
 # write tones based on pitchset selected
 for pitch_id in range(len(primary_pitchsets[primary_pitchset_choice])):
     pitch_content = primary_pitchsets[primary_pitchset_choice][pitch_id]
