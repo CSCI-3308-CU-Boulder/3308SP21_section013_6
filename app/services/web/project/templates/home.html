@@ -7,8 +7,21 @@
     <meta name="description" content="">
     <title>PhotoPhonic</title>
 
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}">
+    <link rel="stylesheet" href="/static/style.css">
+
+    <script>
+        $(document).ready(function(){
+
+            $("#loading").hide();
+
+            $("#uploadButton").click(function(){
+                $("#loading").show();
+            });
+        });
+    </script>
+
 </head>
 
 
@@ -22,6 +35,13 @@
 
     {% include "partials/header.html" %}
 
+    <div id="loading">
+        <div class="spin-container" style="margin-top: 15%;">
+          <div class="spin" id="loader"></div>
+          <span id="loadingText">LOADING...</span>
+        </div>
+    </div>
+
   	<div class="container mb-3">
 
         <div class="row" style="margin-top: 5vw;">
@@ -30,12 +50,12 @@
                 <div class="card slickCard text-center p-5 mt-4 mb-4 h-100 d-inline-block w-100" style="opacity: 0.9; display: flex;">
                     <h5 class="card-title">Try it yourself!</h5>
 <!--                        <img class="card-img" src="{{url_for('static', filename='cloud.jpg')}}">-->
-                    <form action = "http://localhost:5000/upload" method = "POST" enctype = "multipart/form-data" class="mt-3"
+                    <form id="uploadForm" action="http://localhost:5000/upload" method = "POST" enctype = "multipart/form-data" class="mt-3"
                           style="position: absolute; top: 50%; transform: translateY(-50%); margin-right: 3vw;">
 <!--                            <button href="{{ url_for('home', uuid=uuid) }}" class="btn btn-dark blockyButton" />Upload</button>-->
 <!--                            <button href="#" name="button" class="btn btn-dark blockyButton" value="stock">Pick a Random Image</button>-->
-                        <input type = "file" name = "file" class="btn btn-dark blockyButton" style="width:70%;"/>
-                        <input type = "submit" class="btn btn-dark blockyButton"/>
+                        <input type="file" name = "file" class="btn btn-dark blockyButton" style="width:70%;"/>
+                        <input id="uploadButton" type="submit" class="btn btn-dark blockyButton"/>
                     </form>
                 </div>
             </div>
