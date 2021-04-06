@@ -22,11 +22,11 @@ from tones.mixer import Mixer
 import logging
 import uuid
 import os
+from colorlog import ColoredFormatter
 
-
+# Logging stuff
 LOG_LEVEL = logging.DEBUG
 LOGFORMAT = "  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s"
-from colorlog import ColoredFormatter
 logging.root.setLevel(LOG_LEVEL)
 formatter = ColoredFormatter(LOGFORMAT)
 stream = logging.StreamHandler()
@@ -42,33 +42,32 @@ log.addHandler(stream)
 
 volume = 0.4
 duration = 5
-
-
 notes = ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
 
 # { "pitchset_name": [ [tonic-pitch, octave], [second-pitch, octave], ... ], ... }
 # Pitchsets, when given an offset, can be used to perform their associated emotion from any tonic pitch
-
-primary_pitchsets = { # general capture of image
-
+# pitchset 1 describes the spread of colors in a given image
+primary_pitchsets = {
     # if image has little difference in center of masses ('Bb' add#4 maj7)
-    "lonely": [ [0,3], [4,4], [12,3], [10,3], [5,3] ],
+    "lonely": [ [5,3], [7,3], [9,3], [0,4], [4,5] ],
 
     # if one color is more distant by a measurable margin (add69)
     "powerful": [ [0,3], [7,3], [2,4], [9,4], [4,4] ],
-
 }
 
+# pitchset 2 describes which colors of BGR are most prominent
 secondary_pitchsets = { # "bass notes", chosen based on further analysis of the image
     "none": [],  # if image isn't colorful enough
-    "virtue": [ [2,2], [11, 3] ], # if green dominates
-    "legacy": [ [2,2], [9, 3] ], # if blue dominates by a measurable margin
-    "passion": [ [2,2], [8, 3] ] # if red dominates
+    "virtue": [ [0,2], [0, 3], [2, 3]  ], # if green dominates
+    "legacy": [ [0,2], [0, 3], [4, 3] ], # if blue dominates by a measurable margin
+    "passion": [ [0,2], [0, 3], [7, 3] ] # if red dominates
     # "legacy" # if orange dominates
 }
 
 
+
 #----------------< IMAGE PROCESSING DEFINITIONS >----------------#
+
 
 
 # params: ( image pixel matrix , channel to keep )
@@ -102,30 +101,23 @@ def __STRIP_INPLACE__(mat, chan):
 
 
 def image_colorfulness(image):
-	# split the image into its respective RGB components
-	(B, G, R) = cv2.split(image.astype("float"))
-	# compute rg = R - G
-	rg = np.absolute(R - G)
-	# compute yb = 0.5 * (R + G) - B
-	yb = np.absolute(0.5 * (R + G) - B)
-	# compute the mean and standard deviation of both `rg` and `yb`
-	(rbMean, rbStd) = (np.mean(rg), np.std(rg))
-	(ybMean, ybStd) = (np.mean(yb), np.std(yb))
-	# combine the mean and standard deviations
-	stdRoot = np.sqrt((rbStd ** 2) + (ybStd ** 2))
-	meanRoot = np.sqrt((rbMean ** 2) + (ybMean ** 2))
-	# derive the "colorfulness" metric and return it
-	return stdRoot + (0.3 * meanRoot)
+    # split the image into its respective RGB components
+    (B, G, R) = cv2.split(image.astype("float"))
+    # compute rg = R - G
+    rg = np.absolute(R - G)
+    # compute yb = 0.5 * (R + G) - B
+    yb = np.absolute(0.5 * (R + G) - B)
+    # compute the mean and standard deviation of both `rg` and `yb`
+    (rbMean, rbStd) = (np.mean(rg), np.std(rg))
+    (ybMean, ybStd) = (np.mean(yb), np.std(yb))
+    # combine the mean and standard deviations
+    stdRoot = np.sqrt((rbStd ** 2) + (ybStd ** 2))
+    meanRoot = np.sqrt((rbMean ** 2) + (ybMean ** 2))
+    # derive the "colorfulness" metric and return it
+    return stdRoot + (0.3 * meanRoot)
 
 
-
-# params: ( image pixel matrix)
-# returns: color channels variance
-def __VAR__(full_mat):
-    var = []
-
-
-# returns ratio of color for each chanel
+# returns ratio of color for each channel
 def getColorAmount(mat):
     rats = [0,0,0]
     w, h = __getImageDimensions__(mat)
@@ -142,18 +134,13 @@ def getColorAmount(mat):
 # returns: color channels center of mass
 def __COM__(full_mat):
     w, h =__getImageDimensions__(full_mat)
-
     channels_COM = [] # to store return string
-
     # strip color channels from each other
     channels = [__STRIP_CHANNELS__(full_mat,0),__STRIP_CHANNELS__(full_mat,1),__STRIP_CHANNELS__(full_mat,2)]
 
-
-    for channel in range(getChannels(full_mat)):
+    for channel in range(3):
         # log.debug("Performing center of mass function on color channel {}...".format(channel))
-
         mat = channels[channel]
-
         # calculate Xbar, Ybar
         sum_over_columns = [sum(x) for x in zip(*mat)]
         sum_over_rows = [sum(x) for x in mat]
@@ -181,16 +168,6 @@ def __getImageDimensions__(mat):
     h = len(mat)
     return (w, h)
 
-# for front-end
-# takes filepath, returns w, h, or None if no image found
-def getImageDimensions(filepath):
-    mat = cv2.imread("project/static/" + filepath)
-    if mat is None:
-        return (0, 0)
-    else:
-        w = len(mat[0])
-        h = len(mat)
-        return (w, h)
 
 # General-use funtion for determining if something is an image
 def isImage(filename):
@@ -201,25 +178,9 @@ def isImage(filename):
     else:
         return mat
 
-# params: ( image pixel matrix )
-# returns no. of pixel color channels
-def getChannels(image):
-    if isgray(image):
-        return len(image[0])
-    else:
-        return len(image[0][0])
 
-# params: ( image pixel matrix )
-# returns 1 if gray, else 0
-def isgray(image):
-    if len(image.shape) < 3: return True
-    if image.shape[2]  == 1: return True
-    b,g,r = image[:,:,0], image[:,:,1], image[:,:,2]
-    if (b==g).all() and (b==r).all(): return True
-    return False
-
+# provides details on individual color means and ranges in a list of values
 def analyze_image(image):
-
     retStats = [] # return stats
     blue = []
     green = []
@@ -242,13 +203,12 @@ def analyze_image(image):
         val_range = val_max - val_min
         retStats.append([color[1], mean, val_range])
 
-    avg_color = [np.sum(blue) / count, np.sum(green) / count, np.sum(red) / count]
+    # avg_color = [np.sum(blue) / count, np.sum(green) / count, np.sum(red) / count]
     mean = np.mean(image)
     val_max = np.max(image)
     val_min = np.min(image)
     val_range = val_max - val_min
     retStats.append([ 'shade', mean, val_range ])
-
     return retStats
 
 
@@ -265,18 +225,17 @@ def initColorSynth(mixer, iden, analysis, color, synth, attack=1, decay=1, v_f=0
     mixer.add_note(iden, note=pitch_1, octave=octave, duration=duration, amplitude=presence)
 
 
-#----------------< CALLED BY FRONT >----------------#
+
+#----------------< FRONT-END CALLS >----------------#
 
 
 
 def colorMark(mat):
+
     log.info("Analyzing image...")
     circles = __COM__(mat)
     rats = getColorAmount(mat)
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
-
-    # log.debug(rats)
-    # log.debug(circles)
 
     w, h = __getImageDimensions__(mat)
     for chan in range(3):
@@ -286,11 +245,9 @@ def colorMark(mat):
             colors[chan],
             int(w / 150))
 
-    # convert COMs into measurements by image width
-    COMs = []
+    COMs = [] # convert COMs into measurements by image width
     for chan in circles:
         COMs.append( [chan[0]/w, chan[1]/w] )
-
 
     return mat, rats, COMs
 
@@ -298,21 +255,16 @@ def makeUUID(f, uploadPath):
     file_path = os.path.join(uploadPath, f.filename)
     f.save(file_path)
     image_mat = cv2.imread(file_path)
-
     image_id = str(uuid.uuid4())
     imgName = image_id + '.' + "jpg"
     idFilename = 'project/static/uuids/' + imgName
-    # log.debug("Writing image: " + idFilename)
     cv2.imwrite(idFilename, image_mat)
-
     os.remove(file_path)
     writeAudio(image_id, imgName, uploadPath)
     return image_id, image_mat
 
 def writeAudio(imageID, filename, path):
     img = [imageID, filename]
-    # log.debug("Reading image...")
-
     file_path = os.path.join( path, filename )
     img.append( cv2.imread(file_path) )
 
@@ -334,11 +286,7 @@ def writeAudio(imageID, filename, path):
         img[2] = cv2.resize(img[2], dimensions, interpolation=cv2.INTER_AREA)
         cv2.imwrite('project/static/uuids/' + img[1], img[2])
 
-    # [ [channel attribute, mean, range, ...]
-    # imgAnal = analyze_image(img[0], img[2], img[1])
-
     # log.info("Writing audio: {}/{}.wav".format(path, imageID))
-    mixer = Mixer(44100, volume)
     img[2], color_ratios, COMs = colorMark(img[2])  # mark it up yo
 
     # log.debug("Color ratios: %s", str(color_ratios))
@@ -363,115 +311,71 @@ def writeAudio(imageID, filename, path):
     for distIndex in range(len(ds)):
         if (ds[distIndex] > avgDist * 1.5):
             outlierCOMs += 1
-            log.debug("Upper outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
+            # log.debug("Upper outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
         if (ds[distIndex] < avgDist * 0.5):
             outlierCOMs += 1
-            log.debug("Lower outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
+            # log.debug("Lower outlier COM %s in channel %s detected", str(ds[distIndex]), str(distIndex))
 
-    if outlierCOMs == 1:
-        primary_pitchset_choice = "lonely"
-    else:
-        primary_pitchset_choice = "powerful"
+    if outlierCOMs == 1: primary_pitchset_choice = "lonely" # complexity in this decision leaves much to be desired
+    else: primary_pitchset_choice = "powerful"
 
     log.debug("Primary pitch-set \"%s\" selected", primary_pitchset_choice)
 
-
-    # determine most prominent color for secondary_pitchset selection
-
     colorfulness = image_colorfulness(img[2])
-    log.debug("Colorfulness is : %s", str(colorfulness))
+    # log.debug("Colorfulness is : %s", str(colorfulness))
 
     if colorfulness < 50: # determine if image is colorful enough to deserve a second pitchset (bass notes)
         secondary_pitchset_choice = "none"
-    else:
-
-        avgRat = 0
-        for rat in color_ratios:
-            avgRat += rat
-
-        avgRat = avgRat/3
-
-        outliers = []
-        for ratChan in range(len(color_ratios)):
-            if color_ratios[ratChan] < 0.5*avgRat:
-                log.debug("Underlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
-                outliers.append(color_ratios[ [ratChan,(0.5*avgRat)-color_ratios[ratChan]] ])
-            if color_ratios[ratChan] > 1.5*avgRat:
-                log.debug("Overlying rat found in channel %s: %s", ratChan, color_ratios[ratChan])
-                outliers.append(color_ratios[ [ratChan,color_ratios[ratChan]-(1.5*avgRat)] ])
-
-        maxOutlier = [None, None]
-        for outlier in outliers:
-            if outliers[1] > maxOutlier[1]:
-                maxOutlier = outlier
+    else: # determine most prominent color for secondary_pitchset selection
 
         # log.debug("Max outlier found for 2nd_pitchset in channel %s", str(maxOutlier))
+        maxRatIndex = color_ratios.index(max(color_ratios))
 
-        if maxOutlier[0] is None:
-            secondary_pitchset_choice = "none"
-        elif maxOutlier[0] == 0:
+        if maxRatIndex == 0:
             secondary_pitchset_choice = "virtue"
-        elif maxOutlier[0] == 1:
+        elif maxRatIndex == 1:
             secondary_pitchset_choice = "legacy"
-        elif maxOutlier[0] == 2:
+        elif maxRatIndex == 2:
             secondary_pitchset_choice = "passion"
+        else:
+            secondary_pitchset_choice = "none"
 
     log.debug("Secondary pitch-set \"%s\" selected", secondary_pitchset_choice)
 
-
-    # [ [channel attribute, mean, range, ...]
-    # imgAnal = analyze_image(img[0], img[2], img[1])
-
     log.info("Writing audio...")
+
     mixer = Mixer(44100, volume)
-
-    # [ [ color, anal, synth, attack, decay, vibrato_frequency, vibrato_variance, octave, pitch_1], ... ]
-    # imgAnal = analyze_image(img[0], img[2], img[1])
-
     pitch_offset = 0  # change to edit key of playback
-
-    # a measure of how many sawtooth synths to use on playback
-    # as determined by the images colorfulness factor calculated above
-    colorful_pitches = round(colorfulness/10) - 4
-    log.debug("\"Colorful\" pitches to be created: %s", str(colorful_pitches+1))
-
+    saw_pitches = round(colorfulness/10) - 4 # measure of how many sawtooth synths to use on playback
+    # log.debug("Sawtooth pitches to be created: %s", str(colorful_pitches+1))
     instrument = SAWTOOTH_WAVE
 
+    ampBase = 0.5
     for pitch_id in range(len(primary_pitchsets[primary_pitchset_choice])):
         pitch_content = primary_pitchsets[primary_pitchset_choice][pitch_id]
-        # log.debug(pitch_content)
-
         played_pitch = notes[(pitch_content[0] + pitch_offset) % 12]
-
-        if pitch_id > colorful_pitches:
+        if pitch_id > saw_pitches:
             instrument = SINE_WAVE
-            log.debug("\"Bland\" Instrument added")
+            ampBase = 0.6
+        octave = pitch_content[1]
+        if octave > 4: # lower volume on higher notes
+            amp = ampBase + 0.2
         else:
-            log.debug("Colorful Instrument added")
-
+            amp = ampBase + 0.3
         mixer.create_track(pitch_id, instrument, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
-        mixer.add_note(pitch_id, note=played_pitch, octave=pitch_content[1], duration=duration, amplitude=0.8)
+        mixer.add_note(pitch_id, note=played_pitch, octave=octave, duration=duration, amplitude=amp)
 
+    pitch_iter_offset = len(primary_pitchsets[primary_pitchset_choice]) # calculate pitch_id offset
 
-    pitch_iter_offset = len(primary_pitchsets[primary_pitchset_choice])
-    # log.debug("Iter offset: %s", str(pitch_iter_offset))
+    amp = 0.8
     for pitch_id in range(len(secondary_pitchsets[secondary_pitchset_choice])):
         pitch_content = secondary_pitchsets[secondary_pitchset_choice][pitch_id]
-        # log.debug(pitch_content)
-        # log.debug(pitch_id+pitch_iter_offset)
-
         played_pitch = notes[(pitch_content[0] + pitch_offset) % 12]
-
         octave=pitch_content[1]
-        if octave < 4: # lower volume on higher notes
-            amp = 0.8
-        else:
-            amp = 1
         mixer.create_track(pitch_id+pitch_iter_offset, SINE_WAVE, vibrato_frequency=0, vibrato_variance=0, attack=1, decay=1)
         mixer.add_note(pitch_id+pitch_iter_offset, note=played_pitch, octave=octave, duration=duration, amplitude=amp)
 
-
     mixer.write_wav(path + '/' + imageID + '.wav')
-
     log.info("Audio written...")
+
     return imageID + '.wav'
