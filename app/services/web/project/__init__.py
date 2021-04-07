@@ -28,6 +28,7 @@ app.config.update(
     DEBUG = True,
     ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 )
+app.secret_key = "temporary_secret_key"
 
 # test1 = db.Table('users', db.metadata, autoload=True, autoload_with=db.engine)
 
@@ -120,7 +121,7 @@ def login():
         if not userResult or not passResult:
             error = 'Invalid Credentials. Please try again.'
         else:
-            # flash('Log in successful')
+            flash('Log in successful!')
             return redirect("/")
     return render_template("login.html", error=error)
 
@@ -141,6 +142,7 @@ def account_reg():
             new_user = UsersDb(user_name = newUsername, password = newPassword)
             db.session.add(new_user)
             db.session.commit()
+            flash('Account created successfully!')
             return redirect("/")
     return render_template("account_reg.html", error=error)
 
