@@ -22,10 +22,7 @@
 			<input id="inputUser" class="form-control" placeholder="Username" name="username" value="{{request.form.username}}" required autofocus>
 			<label for="inputPassword" class="sr-only">Password</label>
 			<input type="password" id="inputPassword" class="form-control" placeholder="Password" name="password" value="{{request.form.password}}" required>
-
-			<div class="checkbox mb-3">
-					<a href="">Forgot Password?</a>
-			</div>
+				<br> 
 			<button class="btn btn-lg btn-primary" type="submit">Sign in</button>
 			<br> <br>
 			{% if error %}
