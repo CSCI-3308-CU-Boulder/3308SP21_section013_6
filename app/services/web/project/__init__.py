@@ -112,7 +112,10 @@ def login():
 
         # query database
         userResult = db.session.query(UsersDb).filter_by(user_name=inputUser).first()
-        passResult = (userResult.password == inputPassword)
+        if userResult:
+            passResult = (userResult.password == inputPassword)
+        else:
+            passResult = False
 
         if not userResult or not passResult:
             error = 'Invalid Credentials. Please try again.'
