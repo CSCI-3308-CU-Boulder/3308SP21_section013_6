@@ -14,6 +14,7 @@ from flask import Flask, jsonify, render_template, request, redirect, url_for, f
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.automap import automap_base
 import os
+from os import listdir
 import photophonic as pp # main audio generation and image processing definitions
 
 
@@ -42,7 +43,7 @@ app.config.update(
 Base = automap_base()
 Base.prepare(db.engine, reflect=True)
 UsersDb = Base.classes.users
-ImagesDb = Base.classes.images #          <----------- broken line. throws error, works when commented
+ImagesDb = Base.classes.images
 
 
 @app.route('/', methods = ['GET'])
@@ -53,6 +54,14 @@ def home():
 
     else:
         uuid = 'NGGYU'  # default audio uuid
+
+    print("\n[DEBUG]: ImagesDb:")
+    for class_instance in db.session.query(ImagesDb).all():
+        image_id = vars(class_instance)["image_id"]
+        user_name = vars(class_instance)["user_name"]
+        print("\'image_id\': {} \'user_name\': {}".format(image_id, user_name))
+    print()
+
     return render_template("home.html", uuid=uuid)
 
 
@@ -72,8 +81,11 @@ def upload():
             # username      => ...?
             # -------------------------------------------------------------#
 
-            db.insert(ImagesDb).values(name='username', fullname='Full Username')
+            user_name = "Bob The Third"
 
+            newImage = ImagesDb(image_id=image_id, user_name=user_name)
+            db.session.add(newImage)
+            db.session.commit()
 
             return redirect(url_for('home', uuid=image_id))
 
@@ -131,7 +143,34 @@ def account_reg():
 
 @app.route("/creations")
 def creations():
-    return render_template("creations.html")
+
+    rawUuids = listdir(app.config['UPLOADED_PATH'])
+    uuids = []
+    for uuid in rawUuids:
+        print(uuids)
+        split=uuid.split('.')
+        if split[1] != "jpg" and split[0] not in uuids:
+            uuids.append(split[0])
+    uuids.remove('')
+
+    half = len(uuids) // 2
+    listOneUuids = uuids[:half]
+    listTwoUuids = uuids[half:]
+
+    listOne = '<div class="d-flex flex-row flex-nowrap overflow-auto" style="height:20vw;">'
+    listTwo = listOne
+
+    for uuid in listOneUuids:
+        listTemplate = '<div class="card card-block mx-2" style="min-width: 20vw; max-width: 30vw;"><img class="d-block w-100" style="width:100%; height:100%;" src="/static/uuids/' + uuid + '.jpg" alt="' + uuid + '"></div>'
+        listOne = listOne + listTemplate
+    listOne = listOne + '</div>'
+
+    for uuid in listTwoUuids:
+        listTemplate = '<div class="card card-block mx-2" style="min-width: 20vw; max-width: 30vw;"><img class="d-block w-100" style="width:100%; height:100%;" src="/static/uuids/' + uuid + '.jpg" alt="' + uuid + '"></div>'
+        listTwo = listTwo + listTemplate
+    listTwo = listTwo + '</div>'
+
+    return render_template("creations.html", uuids=uuids, path=app.config['UPLOADED_PATH'], listOne=listOne, listTwo=listTwo)
 
 
 # @app.route('/test',methods = ['POST', 'GET'])
